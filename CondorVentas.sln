@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{33C6CC9C-C68B-4256-9A32-A807389903D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Condor.Escritorio", "src\Condor.Escritorio\Condor.Escritorio.csproj", "{E6D55770-C404-4EA5-8E53-F4FF97AB9714}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Condor.Presentacion", "src\Condor.Presentacion\Condor.Presentacion.csproj", "{84575805-DCE7-49A0-BB45-E84D089CA23C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E6D55770-C404-4EA5-8E53-F4FF97AB9714}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6D55770-C404-4EA5-8E53-F4FF97AB9714}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6D55770-C404-4EA5-8E53-F4FF97AB9714}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6D55770-C404-4EA5-8E53-F4FF97AB9714}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84575805-DCE7-49A0-BB45-E84D089CA23C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84575805-DCE7-49A0-BB45-E84D089CA23C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84575805-DCE7-49A0-BB45-E84D089CA23C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84575805-DCE7-49A0-BB45-E84D089CA23C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E6D55770-C404-4EA5-8E53-F4FF97AB9714} = {33C6CC9C-C68B-4256-9A32-A807389903D1}
+		{84575805-DCE7-49A0-BB45-E84D089CA23C} = {33C6CC9C-C68B-4256-9A32-A807389903D1}
+	EndGlobalSection
+EndGlobal

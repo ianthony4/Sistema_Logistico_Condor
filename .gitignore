@@ -1,0 +1,26 @@
+# Compilación
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.swp
+
+# Resultados de pruebas
+TestResults/
+*.trx
+coverage*/
+
+# Configuración local de cada PC (contiene la clave de la base de datos)
+condor.json
+!src/Condor.Escritorio/condor.ejemplo.json
+
+# Respaldos y temporales
+*.bak
+*.log
