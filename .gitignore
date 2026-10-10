@@ -24,3 +24,5 @@ condor.json
 # Respaldos y temporales
 *.bak
 *.log
+
+.atl/
