@@ -35,9 +35,25 @@ public partial class App : Application
         MainWindow = ventana;
         ventana.Show();
 
-        vm.Mensaje = await Conexiones.ProbarAsync()
-            ? $"Conectado a la base de datos central ({config})."
-            : $"Sin conexión con la PC principal ({config}). Revise la red.";
+        if (!await Conexiones.ProbarAsync())
+        {
+            vm.Mensaje = $"Sin conexión con la PC principal ({config}). Revise la red.";
+            return;
+        }
+
+        try
+        {
+            var aplicadas = await new Migrador(Conexiones).AplicarAsync();
+            vm.Mensaje = aplicadas == 0
+                ? $"Conectado a la base de datos central ({config})."
+                : $"Conectado a {config}. Base de datos actualizada ({aplicadas} migraciones).";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"No se pudo actualizar la base de datos:\n{ex.Message}",
+                "Migraciones", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(2);
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)
