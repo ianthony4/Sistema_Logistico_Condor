@@ -1,8 +1,9 @@
 using System.IO;
 using System.Windows;
 using Condor.Datos;
-using Condor.Presentacion.ViewModels;
+using Condor.Dominio.Entidades;
 using Condor.Escritorio.Vistas;
+using Condor.Presentacion.ViewModels;
 
 namespace Condor.Escritorio;
 
@@ -28,9 +29,13 @@ public partial class App : Application
             return;
         }
 
-        Conexiones = new FabricaConexiones(config, Environment.MachineName);
+        var nombreEquipo = Environment.MachineName;
+        Conexiones = new FabricaConexiones(config, nombreEquipo);
 
+        // HU-14: se abre directamente la pantalla Nueva venta con el perfil
+        // MAESTRO, sin pedir usuario ni contraseña.
         var vm = new MainViewModel();
+        vm.IniciarSesion(Sesion.Local(nombreEquipo));
         var ventana = new MainWindow { DataContext = vm };
         MainWindow = ventana;
         ventana.Show();
@@ -44,14 +49,20 @@ public partial class App : Application
         try
         {
             var aplicadas = await new Migrador(Conexiones).AplicarAsync();
+            var terminal = await new TerminalRepositorio(Conexiones).RegistrarAccesoAsync(nombreEquipo);
+            vm.IniciarSesion(new Sesion(terminal));
             vm.Mensaje = aplicadas == 0
                 ? $"Conectado a la base de datos central ({config})."
                 : $"Conectado a {config}. Base de datos actualizada ({aplicadas} migraciones).";
         }
+        catch (SinConexionException)
+        {
+            vm.Mensaje = $"Se perdió la conexión con la PC principal ({config}).";
+        }
         catch (Exception ex)
         {
-            MessageBox.Show($"No se pudo actualizar la base de datos:\n{ex.Message}",
-                "Migraciones", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"No se pudo preparar la base de datos:\n{ex.Message}",
+                "Base de datos", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(2);
         }
     }
