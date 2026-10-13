@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ViewModels y base MVVM sin dependencias de WPF: se pueden probar sin abrir ventanas. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Condor.Presentacion</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Condor.Dominio\Condor.Dominio.csproj" />
+  </ItemGroup>
+
+</Project>
