@@ -13,4 +13,9 @@
     <ProjectReference Include="..\Condor.Dominio\Condor.Dominio.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Los scripts de db/migraciones viajan dentro de la DLL (T-03). -->
+    <EmbeddedResource Include="..\..\db\migraciones\*.sql" LinkBase="Migraciones" />
+  </ItemGroup>
+
 </Project>
