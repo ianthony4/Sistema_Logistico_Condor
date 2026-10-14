@@ -26,3 +26,6 @@ condor.json
 *.log
 
 .atl/
+
+# Salida de ejecutar.ps1
+.ejecutar/
