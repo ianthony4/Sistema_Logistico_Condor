@@ -1,6 +1,7 @@
 using System.Globalization;
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Validacion;
 using Condor.Presentacion.Mvvm;
 
 namespace Condor.Presentacion.ViewModels;
@@ -90,13 +91,14 @@ public sealed class NuevoProductoViewModel : ObservableObject
             return;
         }
 
-        if (precio <= 0)
+        var producto = ValidadorProducto.Normalizar(new Producto { Nombre = Nombre, Precio = precio, Unidad = Unidad });
+        var errores = ValidadorProducto.Errores(producto);
+        if (errores.Count > 0)
         {
-            Error = "El precio debe ser mayor que cero.";
+            Error = string.Join(" ", errores);
             return;
         }
 
-        var producto = new Producto { Nombre = Nombre.Trim(), Precio = precio, Unidad = Unidad };
         try
         {
             Guardado = await _productos.RegistrarAsync(producto);
