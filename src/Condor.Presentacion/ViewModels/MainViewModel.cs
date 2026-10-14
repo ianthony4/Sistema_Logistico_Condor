@@ -1,3 +1,4 @@
+using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
 using Condor.Presentacion.Mvvm;
 
@@ -11,10 +12,17 @@ public sealed class MainViewModel : ObservableObject
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
 
-    public MainViewModel()
+    /// <param name="productos">Catálogo; si es null no se muestra el buscador.</param>
+    public MainViewModel(IProductoRepositorio? productos = null)
     {
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
+
+        if (productos is not null)
+        {
+            Buscador = new BuscadorProductoViewModel(productos);
+            Buscador.ProductoElegido += AlElegirProducto;
+        }
     }
 
     public string Titulo => "Ferretería Cóndor Majes - Nueva venta";
@@ -44,8 +52,14 @@ public sealed class MainViewModel : ObservableObject
         set => SetProperty(ref _mensaje, value);
     }
 
+    /// <summary>Campo Producto con autocompletado (HU-02).</summary>
+    public BuscadorProductoViewModel? Buscador { get; }
+
     /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
 
     public void IniciarSesion(Sesion sesion) => Sesion = sesion;
+
+    private void AlElegirProducto(Producto producto) =>
+        Mensaje = $"Producto elegido: {producto.Nombre} - S/ {producto.Precio:0.00}";
 }

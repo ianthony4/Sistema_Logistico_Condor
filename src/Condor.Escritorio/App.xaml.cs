@@ -34,7 +34,7 @@ public partial class App : Application
 
         // HU-14: se abre directamente la pantalla Nueva venta con el perfil
         // MAESTRO, sin pedir usuario ni contraseña.
-        var vm = new MainViewModel();
+        var vm = new MainViewModel(new ProductoRepositorio(Conexiones));
         vm.IniciarSesion(Sesion.Local(nombreEquipo));
         var ventana = new MainWindow { DataContext = vm };
         MainWindow = ventana;
