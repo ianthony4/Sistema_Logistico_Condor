@@ -12,7 +12,23 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    private BuscadorProductoViewModel? Buscador => (DataContext as MainViewModel)?.Buscador;
+    private MainViewModel? Vm => DataContext as MainViewModel;
+
+    private BuscadorProductoViewModel? Buscador => Vm?.Buscador;
+
+    // Diálogo Nuevo producto (HU-01, T-13): al guardar, el producto queda
+    // elegido en el campo Producto y las otras PC reciben el aviso.
+    private void NuevoProducto_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearNuevoProducto();
+        if (vm is null)
+            return;
+
+        var dialogo = new NuevoProductoWindow(vm) { Owner = this };
+        if (dialogo.ShowDialog() == true && vm.Guardado is not null)
+            Vm!.ProductoRegistrado(vm.Guardado);
+        CampoProducto.Focus();
+    }
 
     // Teclado del campo Producto: flecha abajo entra a la lista, Enter elige
     // la primera sugerencia y Esc cierra la lista. Así se vende sin mouse.

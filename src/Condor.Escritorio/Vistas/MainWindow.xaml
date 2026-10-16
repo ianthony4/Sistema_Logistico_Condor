@@ -6,7 +6,12 @@
         WindowStartupLocation="CenterScreen"
         FocusManager.FocusedElement="{Binding ElementName=CampoProducto}">
 
+    <Window.CommandBindings>
+        <CommandBinding Command="New" Executed="NuevoProducto_Click" />
+    </Window.CommandBindings>
+
     <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="New" />
         <KeyBinding Key="F2" Command="{Binding ModuloPendienteCommand}" CommandParameter="Catálogo" />
         <KeyBinding Key="F3" Command="{Binding ModuloPendienteCommand}" CommandParameter="Clientes" />
         <KeyBinding Key="F4" Command="{Binding ModuloPendienteCommand}" CommandParameter="Compras" />
@@ -58,6 +63,8 @@
             <!-- Campo Producto con autocompletado (HU-02, T-16). -->
             <DockPanel Grid.Row="0" DataContext="{Binding Buscador}">
                 <Label DockPanel.Dock="Left" Content="_Producto:" Target="{Binding ElementName=CampoProducto}" />
+                <Button DockPanel.Dock="Right" Content="+ Nuevo prod." Click="NuevoProducto_Click"
+                        ToolTip="Registrar un producto que no está en el catálogo (Ctrl+N)." />
                 <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource TextoError}" Text="{Binding Error}"
                            Visibility="{Binding Error, Converter={StaticResource NuloAOculto}}" />
                 <Grid>
