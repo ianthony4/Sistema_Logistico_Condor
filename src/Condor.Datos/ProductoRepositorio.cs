@@ -50,6 +50,11 @@ public sealed class ProductoRepositorio : IProductoRepositorio
         }
     }
 
+    /// <summary>
+    /// Busca por parte del nombre, sin distinguir mayúsculas ni tildes. Usa el
+    /// índice GIN de trigramas de la migración V003 (T-15); los productos cuyo
+    /// nombre empieza por el texto aparecen primero.
+    /// </summary>
     public async Task<IReadOnlyList<Producto>> BuscarPorNombreAsync(string texto, int limite = 20, CancellationToken ct = default)
     {
         texto = texto?.Trim() ?? string.Empty;
@@ -61,8 +66,9 @@ public sealed class ProductoRepositorio : IProductoRepositorio
             $"""
             SELECT {Columnas}
             FROM producto
-            WHERE activo AND nombre ILIKE '%' || @texto || '%'
-            ORDER BY lower(nombre) LIKE lower(@texto) || '%' DESC, nombre
+            WHERE activo
+              AND texto_busqueda(nombre) LIKE '%' || texto_busqueda(@texto) || '%'
+            ORDER BY texto_busqueda(nombre) LIKE texto_busqueda(@texto) || '%' DESC, nombre
             LIMIT @limite
             """, conexion);
         cmd.Parameters.AddWithValue("texto", EscaparLike(texto));
