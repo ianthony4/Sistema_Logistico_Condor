@@ -12,6 +12,8 @@ public partial class App : Application
     /// <summary>Conexiones a la base de datos central, compartidas por toda la aplicación.</summary>
     public static FabricaConexiones? Conexiones { get; private set; }
 
+    private AvisoCatalogo? _avisoCatalogo;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -51,6 +53,12 @@ public partial class App : Application
             var aplicadas = await new Migrador(Conexiones).AplicarAsync();
             var terminal = await new TerminalRepositorio(Conexiones).RegistrarAccesoAsync(nombreEquipo);
             vm.IniciarSesion(new Sesion(terminal));
+
+            // T-13: los productos registrados en otra PC aparecen al instante.
+            _avisoCatalogo = new AvisoCatalogo(Conexiones.CadenaConexion);
+            _avisoCatalogo.CatalogoCambiado += () => Dispatcher.InvokeAsync(vm.AlCambiarCatalogo);
+            _avisoCatalogo.Iniciar();
+
             vm.Mensaje = aplicadas == 0
                 ? $"Conectado a la base de datos central ({config})."
                 : $"Conectado a {config}. Base de datos actualizada ({aplicadas} migraciones).";
@@ -69,6 +77,8 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
+        if (_avisoCatalogo is not null)
+            await _avisoCatalogo.DisposeAsync();
         if (Conexiones is not null)
             await Conexiones.DisposeAsync();
         base.OnExit(e);

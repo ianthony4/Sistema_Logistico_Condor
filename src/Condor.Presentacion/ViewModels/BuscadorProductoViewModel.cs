@@ -94,6 +94,20 @@ public sealed class BuscadorProductoViewModel : ObservableObject
         ProductoElegido?.Invoke(producto);
     }
 
+    /// <summary>
+    /// Vuelve a consultar si la lista está abierta: la usa el aviso de cambios
+    /// del catálogo para mostrar los productos recién registrados en otra PC.
+    /// </summary>
+    public void Refrescar()
+    {
+        // Se repite la búsqueda si la lista está abierta o si lo escrito no
+        // encontraba nada (quizá el producto nuevo coincide). No se toca un
+        // producto ya elegido.
+        var hayTexto = Texto.Trim().Length >= MinimoLetras;
+        if (hayTexto && (MostrarSugerencias || Sugerencias.Count == 0))
+            UltimaBusqueda = ProgramarBusquedaAsync(Texto);
+    }
+
     /// <summary>Vacía el campo para el siguiente producto.</summary>
     public void Limpiar()
     {
