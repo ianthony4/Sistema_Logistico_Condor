@@ -29,3 +29,4 @@ condor.json
 
 # Salida de ejecutar.ps1
 .ejecutar/
+.codegraph/
