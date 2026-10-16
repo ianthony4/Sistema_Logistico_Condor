@@ -12,6 +12,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IProductoRepositorio? _productos;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
+    private EstadoConexionViewModel? _conexion;
 
     /// <param name="productos">Catálogo; si es null no se muestra el buscador.</param>
     public MainViewModel(IProductoRepositorio? productos = null)
@@ -24,6 +25,7 @@ public sealed class MainViewModel : ObservableObject
         {
             Buscador = new BuscadorProductoViewModel(productos);
             Buscador.ProductoElegido += AlElegirProducto;
+            Buscador.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         }
     }
 
@@ -54,6 +56,22 @@ public sealed class MainViewModel : ObservableObject
         set => SetProperty(ref _mensaje, value);
     }
 
+    /// <summary>Aviso de pérdida de conexión con la PC principal (T-06).</summary>
+    public EstadoConexionViewModel? Conexion
+    {
+        get => _conexion;
+        set
+        {
+            if (!SetProperty(ref _conexion, value) || value is null)
+                return;
+            value.ConexionRecuperada += () =>
+            {
+                Mensaje = "Conexión con la PC principal recuperada.";
+                Buscador?.Refrescar();
+            };
+        }
+    }
+
     /// <summary>Campo Producto con autocompletado (HU-02).</summary>
     public BuscadorProductoViewModel? Buscador { get; }
 
@@ -72,6 +90,7 @@ public sealed class MainViewModel : ObservableObject
             return null;
 
         var vm = new NuevoProductoViewModel(_productos);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         if (Buscador is { Sugerencias.Count: 0 } && !string.IsNullOrWhiteSpace(Buscador.Texto))
             vm.Nombre = Buscador.Texto.Trim();
         return vm;
