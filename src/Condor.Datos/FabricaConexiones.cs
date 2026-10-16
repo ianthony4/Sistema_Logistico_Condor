@@ -1,3 +1,4 @@
+using Condor.Dominio.Contratos;
 using Npgsql;
 
 namespace Condor.Datos;
@@ -65,15 +66,4 @@ public sealed class FabricaConexiones : IAsyncDisposable
     };
 
     public ValueTask DisposeAsync() => _origen.DisposeAsync();
-}
-
-/// <summary>
-/// La PC principal no responde: red caída, PC apagada o servicio detenido.
-/// </summary>
-public sealed class SinConexionException : Exception
-{
-    public SinConexionException(Exception causa)
-        : base("No hay conexión con la base de datos central (PC principal).", causa)
-    {
-    }
 }

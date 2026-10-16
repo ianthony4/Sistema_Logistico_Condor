@@ -36,6 +36,17 @@
             </StackPanel>
         </Border>
 
+        <!-- Aviso de pérdida de conexión (T-06): no borra nada de la pantalla. -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource Aviso}" BorderBrush="{StaticResource Error}"
+                BorderThickness="0,0,0,2" Padding="12,6" DataContext="{Binding Conexion}"
+                Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="_Reintentar" Command="{Binding ReintentarCommand}" />
+                <TextBlock Text="{Binding Aviso}" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Foreground="{StaticResource Error}" FontWeight="Bold" />
+            </DockPanel>
+        </Border>
+
         <!-- Barra de módulos. -->
         <UniformGrid DockPanel.Dock="Top" Rows="1" Margin="8,6">
             <Button Content="F1 Nueva venta" IsEnabled="False" />

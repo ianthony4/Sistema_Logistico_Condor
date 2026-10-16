@@ -32,6 +32,9 @@ public sealed class BuscadorProductoViewModel : ObservableObject
     /// <summary>Se dispara cuando el usuario elige un producto de la lista.</summary>
     public event Action<Producto>? ProductoElegido;
 
+    /// <summary>La búsqueda falló porque no responde la PC principal (T-06).</summary>
+    public event Action? ConexionPerdida;
+
     /// <summary>
     /// Espera tras la última tecla antes de consultar, para no lanzar una
     /// consulta por cada letra. En las pruebas se pone en cero.
@@ -153,6 +156,13 @@ public sealed class BuscadorProductoViewModel : ObservableObject
         catch (OperationCanceledException)
         {
             // El usuario siguió escribiendo; la búsqueda nueva reemplaza a esta.
+        }
+        catch (SinConexionException)
+        {
+            Sugerencias.Clear();
+            MostrarSugerencias = false;
+            Error = "Sin conexión con la PC principal: no se puede buscar.";
+            ConexionPerdida?.Invoke();
         }
         catch (Exception ex)
         {

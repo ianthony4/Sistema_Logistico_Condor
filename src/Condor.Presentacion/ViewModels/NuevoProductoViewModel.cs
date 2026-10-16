@@ -27,6 +27,9 @@ public sealed class NuevoProductoViewModel : ObservableObject
     /// <summary>Lo escucha la ventana para cerrarse: true si se guardó.</summary>
     public event Action<bool>? Cerrar;
 
+    /// <summary>Guardar falló porque no responde la PC principal.</summary>
+    public event Action? ConexionPerdida;
+
     public static IReadOnlyList<string> Unidades { get; } =
         new[] { "UND", "KG", "M", "GAL", "BLS", "VAR", "CJA", "ROL", "PZA", "LT" };
 
@@ -103,6 +106,12 @@ public sealed class NuevoProductoViewModel : ObservableObject
         {
             Guardado = await _productos.RegistrarAsync(producto);
             Cerrar?.Invoke(true);
+        }
+        catch (SinConexionException)
+        {
+            // T-06: el diálogo sigue abierto con lo escrito para reintentar.
+            Error = "Sin conexión con la PC principal. Sus datos se conservan: pulse Guardar para reintentar.";
+            ConexionPerdida?.Invoke();
         }
         catch (Exception ex)
         {
