@@ -4,7 +4,8 @@
         Title="{Binding Titulo}"
         Width="1100" Height="720" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
-        FocusManager.FocusedElement="{Binding ElementName=CampoProducto}">
+        FocusManager.FocusedElement="{Binding ElementName=CampoProducto}"
+        KeyDown="Ventana_KeyDown">
 
     <Window.CommandBindings>
         <CommandBinding Command="New" Executed="NuevoProducto_Click" />
@@ -69,13 +70,30 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Cantidad, Agregar y Nuevo producto (T-17, T-13). -->
+            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top"
+                        DataContext="{Binding Venta}">
+                <Label Content="C_ant.:" Target="{Binding ElementName=CampoCantidad}" />
+                <TextBox x:Name="CampoCantidad" Width="70" FontSize="16" TextAlignment="Right"
+                         Text="{Binding CantidadTexto, UpdateSourceTrigger=PropertyChanged}"
+                         GotKeyboardFocus="CampoCantidad_GotKeyboardFocus"
+                         PreviewKeyDown="CampoCantidad_PreviewKeyDown" />
+                <Button Content="_Agregar" Style="{StaticResource BotonPrincipal}" Command="{Binding AgregarCommand}" />
+                <Button Content="+ Nuevo prod." Click="NuevoProducto_Click"
+                        ToolTip="Registrar un producto que no está en el catálogo (Ctrl+N)." />
+            </StackPanel>
 
             <!-- Campo Producto con autocompletado (HU-02, T-16). -->
             <DockPanel Grid.Row="0" DataContext="{Binding Buscador}">
                 <Label DockPanel.Dock="Left" Content="_Producto:" Target="{Binding ElementName=CampoProducto}" />
-                <Button DockPanel.Dock="Right" Content="+ Nuevo prod." Click="NuevoProducto_Click"
-                        ToolTip="Registrar un producto que no está en el catálogo (Ctrl+N)." />
                 <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource TextoError}" Text="{Binding Error}"
                            Visibility="{Binding Error, Converter={StaticResource NuloAOculto}}" />
                 <Grid>
@@ -119,8 +137,60 @@
                 </Grid>
             </DockPanel>
 
-            <!-- Detalle de la venta (se completa en T-17). -->
-            <Border Grid.Row="1" Margin="0,8,0,0" BorderBrush="{StaticResource Borde}" BorderThickness="1" Background="White" />
+            <!-- Detalle de la venta (T-17). La cantidad se puede corregir en la tabla. -->
+            <DataGrid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0" ItemsSource="{Binding Venta.Detalle}"
+                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                      CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
+                      GridLinesVisibility="Horizontal" FontSize="15" RowHeight="30">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="N.°" Binding="{Binding Item}" IsReadOnly="True" Width="50" />
+                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" IsReadOnly="True" Width="*" />
+                    <DataGridTextColumn Header="Und." Binding="{Binding Unidad}" IsReadOnly="True" Width="60" />
+                    <DataGridTextColumn Header="Cant." Binding="{Binding Cantidad, StringFormat='0.###'}" Width="80" />
+                    <DataGridTextColumn Header="P. unit." Binding="{Binding PrecioUnitario, StringFormat='0.00'}" IsReadOnly="True" Width="90" />
+                    <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat='0.00', Mode=OneWay}" IsReadOnly="True" Width="100" />
+                    <DataGridTemplateColumn Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Quitar" Margin="2" Padding="4,0" MinWidth="0"
+                                        Command="{Binding DataContext.Venta.QuitarCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Totales: los precios incluyen IGV (18 %). -->
+            <Border Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0" Padding="12,8" Background="White"
+                    BorderBrush="{StaticResource Borde}" BorderThickness="1" DataContext="{Binding Venta}">
+                <Grid HorizontalAlignment="Right">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="140" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Op. gravada:" />
+                    <TextBlock Grid.Column="1" TextAlignment="Right" Text="{Binding OpGravada, StringFormat='0.00'}" />
+                    <TextBlock Grid.Row="1" Text="IGV (18 %):" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" TextAlignment="Right" Text="{Binding Igv, StringFormat='0.00'}" />
+                    <TextBlock Grid.Row="2" Text="TOTAL S/." FontSize="20" FontWeight="Bold" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" TextAlignment="Right" FontSize="20" FontWeight="Bold"
+                               Text="{Binding Total, StringFormat='0.00'}" />
+                </Grid>
+            </Border>
+
+            <!-- Acciones de la venta. Emitir llega en el Sprint 2 (HU-05). -->
+            <DockPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" LastChildFill="False">
+                <Button DockPanel.Dock="Left" Content="Cancelar (Esc)" Width="160" Click="CancelarVenta_Click" />
+                <Button DockPanel.Dock="Right" Content="EMITIR E IMPRIMIR (F10)" Width="280" FontSize="16"
+                        Style="{StaticResource BotonPrincipal}" IsEnabled="False"
+                        ToolTip="La emisión de boletas y facturas se implementa en el Sprint 2 (HU-05)." />
+            </DockPanel>
         </Grid>
     </DockPanel>
 </Window>
