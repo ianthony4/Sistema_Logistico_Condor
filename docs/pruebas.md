@@ -29,6 +29,29 @@ dotnet test
 
 Desde otra PC del local, cambiar `localhost` por la IP de la PC principal.
 
+## Prueba de concurrencia en la red del local (T-07)
+
+`Aceptacion/HU16_ConcurrenciaTests` simula las tres PC con tres grupos de
+conexiones. Para repetirla con las PC reales:
+
+1. En la PC principal, base `condor_pruebas` creada y accesible desde la LAN
+   (`docs/instalacion_postgresql.md`).
+2. En **dos o tres PC** a la vez, con `CONDOR_TEST_CONN` apuntando a la IP de
+   la PC principal:
+
+   ```powershell
+   dotnet test --filter "FullyQualifiedName~HU16_Concurrencia"
+   ```
+
+3. Las tres ejecuciones deben pasar. En `psql` se comprueba que ninguna serie
+   de prueba (`Y001`, `Y002`...) tiene números repetidos ni huecos:
+
+   ```sql
+   SELECT s.codigo, count(*), min(c.numero), max(c.numero)
+   FROM comprobante c JOIN serie s ON s.id = c.serie_id
+   WHERE s.codigo LIKE 'Y%' GROUP BY s.codigo;   -- count = max y min = 1
+   ```
+
 ## Antes de mover una tarjeta a *Hecho*
 
 1. `dotnet test` pasa completo con `CONDOR_TEST_CONN` definida.
