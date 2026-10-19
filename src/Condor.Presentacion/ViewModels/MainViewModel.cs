@@ -20,6 +20,12 @@ public sealed class MainViewModel : ObservableObject
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
 
+        Venta.LineaAgregada += linea =>
+        {
+            Buscador?.Limpiar();
+            Mensaje = $"Agregado: {linea.Cantidad:0.###} x {linea.Descripcion}. Total S/ {Venta.Total:0.00}";
+        };
+
         _productos = productos;
         if (productos is not null)
         {
@@ -72,6 +78,9 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Detalle y totales de la venta en curso (T-17).</summary>
+    public VentaViewModel Venta { get; } = new();
+
     /// <summary>Campo Producto con autocompletado (HU-02).</summary>
     public BuscadorProductoViewModel? Buscador { get; }
 
@@ -106,6 +115,9 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>
     public void AlCambiarCatalogo() => Buscador?.Refrescar();
 
-    private void AlElegirProducto(Producto producto) =>
-        Mensaje = $"Producto elegido: {producto.Nombre} - S/ {producto.Precio:0.00}";
+    private void AlElegirProducto(Producto producto)
+    {
+        Venta.ProductoPorAgregar = producto;
+        Mensaje = $"{producto.Nombre} - S/ {producto.Precio:0.00}. Escriba la cantidad y presione Enter.";
+    }
 }

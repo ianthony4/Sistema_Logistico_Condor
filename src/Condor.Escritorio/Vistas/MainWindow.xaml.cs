@@ -10,6 +10,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // Tras agregar una línea, el cursor vuelve al campo Producto (T-17).
+        DataContextChanged += (_, e) =>
+        {
+            if (e.NewValue is MainViewModel vm)
+                vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
+        };
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
@@ -46,6 +53,7 @@ public partial class MainWindow : Window
                 break;
             case Key.Enter:
                 buscador.Elegir(buscador.Seleccionado);
+                CampoCantidad.Focus();
                 e.Handled = true;
                 break;
             case Key.Escape:
@@ -64,7 +72,7 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter)
         {
             buscador.Elegir(buscador.Seleccionado);
-            CampoProducto.Focus();
+            CampoCantidad.Focus();
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)
@@ -78,7 +86,45 @@ public partial class MainWindow : Window
     private void ListaSugerencias_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         Buscador?.Elegir(Buscador.Seleccionado);
-        CampoProducto.Focus();
+        CampoCantidad.Focus();
+    }
+
+    // Cantidad: Enter agrega la línea al detalle (criterio 2 de HU-02).
+    private void CampoCantidad_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || Vm is null)
+            return;
+        Vm.Venta.Agregar();
+        e.Handled = true;
+    }
+
+    private void CampoCantidad_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        CampoCantidad.SelectAll();
+
+    // Esc fuera de la lista de sugerencias: descartar la venta en curso.
+    private void Ventana_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            CancelarVenta_Click(sender, e);
+            e.Handled = true;
+        }
+    }
+
+    private void CancelarVenta_Click(object sender, RoutedEventArgs e)
+    {
+        var venta = Vm?.Venta;
+        if (venta is null || venta.Detalle.Count == 0)
+            return;
+
+        var respuesta = MessageBox.Show(this, "¿Descartar la venta en curso?", "Cancelar venta",
+            MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+        if (respuesta == MessageBoxResult.Yes)
+        {
+            venta.Cancelar();
+            Buscador?.Limpiar();
+            CampoProducto.Focus();
+        }
     }
 
     private void EnfocarSugerencia()
