@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Condor.Escritorio</RootNamespace>
+    <AssemblyName>CondorVentas</AssemblyName>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Condor.Datos\Condor.Datos.csproj" />
+    <ProjectReference Include="..\Condor.Presentacion\Condor.Presentacion.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Cóndor, volcán y greca de la interfaz (recortados de imgs/). -->
+    <Resource Include="Recursos\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Plantilla de configuración; el condor.json real de cada PC no se versiona. -->
+    <None Update="condor.ejemplo.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="condor.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('condor.json')" />
+  </ItemGroup>
+
+</Project>

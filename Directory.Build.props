@@ -1,0 +1,12 @@
+<Project>
+  <!-- Opciones comunes a todos los proyectos de la solución. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Company>Ferretería Cóndor Majes S.A.C.</Company>
+    <Product>Sistema de Ventas y Facturación Cóndor</Product>
+    <NeutralLanguage>es-PE</NeutralLanguage>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,46 @@
+# Integración continua: cada pull request contra develop o main debe compilar
+# en Windows y pasar todas las pruebas contra PostgreSQL 16 (Definition of Done).
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+jobs:
+  compilar-windows:
+    name: Compilar (Windows, WPF)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet build CondorVentas.sln -c Release
+
+  pruebas:
+    name: Pruebas (PostgreSQL 16)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: condor_app
+          POSTGRES_PASSWORD: condor_ci
+          POSTGRES_DB: condor_pruebas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U condor_app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CONDOR_TEST_CONN: Host=localhost;Port=5432;Database=condor_pruebas;Username=condor_app;Password=condor_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test tests/Condor.Pruebas --logger "console;verbosity=normal"
