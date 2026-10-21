@@ -2,8 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{Binding Titulo}"
-        Width="1100" Height="720" MinWidth="900" MinHeight="600"
-        WindowStartupLocation="CenterScreen"
+        Icon="/Recursos/condor.png"
+        Width="1440" Height="880" MinWidth="1180" MinHeight="700"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized"
         FocusManager.FocusedElement="{Binding ElementName=CampoProducto}"
         KeyDown="Ventana_KeyDown">
 
@@ -20,177 +21,442 @@
         <KeyBinding Key="F9" Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo" />
     </Window.InputBindings>
 
-    <DockPanel>
-        <!-- Cabecera: nombre del local, terminal y perfil (wireframe del Lab 03). -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource FondoCabecera}"
-                BorderBrush="{StaticResource Borde}" BorderThickness="0,0,0,1" Padding="12,8">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding Titulo}" FontWeight="Bold" FontSize="16" />
-                <TextBlock Margin="40,0,0,0" FontSize="16">
-                    <Run Text="Terminal:" FontWeight="Bold" />
-                    <Run Text="{Binding Terminal, Mode=OneWay}" />
-                </TextBlock>
-                <TextBlock Margin="30,0,0,0" FontSize="16">
-                    <Run Text="Usuario:" FontWeight="Bold" />
-                    <Run Text="{Binding Usuario, Mode=OneWay}" />
-                </TextBlock>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="228" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ============================================================
+             Menú lateral: marca, sede, módulos y el Misti al fondo.
+             ============================================================ -->
+        <Grid Background="{StaticResource Lateral}" ClipToBounds="True">
+            <Rectangle Fill="{StaticResource PapelOscuro}" IsHitTestVisible="False" />
+
+            <!-- Volcán centrado bajo el menú; la cima de la imagen está un 6 % a la
+                 derecha, por eso el margen asimétrico. Se desvanece hacia abajo. -->
+            <Image Source="/Recursos/volcan.png" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                   Stretch="Uniform" Width="470" Margin="-200,0,-144,-6" Opacity="0.3" IsHitTestVisible="False">
+                <Image.OpacityMask>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FF000000" Offset="0" />
+                        <GradientStop Color="#FF000000" Offset="0.55" />
+                        <GradientStop Color="#33000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Image.OpacityMask>
+            </Image>
+
+            <StackPanel>
+                <!-- Marca -->
+                <StackPanel Margin="0,42,0,0" HorizontalAlignment="Center">
+                    <Image Source="/Recursos/condor.png" Width="136" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="F&#x2009;E&#x2009;R&#x2009;R&#x2009;E&#x2009;T&#x2009;E&#x2009;R&#x2009;Í&#x2009;A" Style="{StaticResource TituloSerif}" FontWeight="SemiBold" FontSize="20"
+                               Foreground="#E58A62" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                    <TextBlock Text="C&#x2009;Ó&#x2009;N&#x2009;D&#x2009;O&#x2009;R" Style="{StaticResource TituloSerif}" FontSize="23"
+                               Foreground="#E58A62" HorizontalAlignment="Center" Margin="0,-2,0,0" />
+                    <TextBlock Text="M&#x2002;A&#x2002;J&#x2002;E&#x2002;S" FontSize="11" FontWeight="SemiBold" Foreground="#E58A62"
+                               HorizontalAlignment="Center" Margin="0,3,0,0" />
+                    <Border Height="1.5" Width="146" Background="#DC8761" Margin="0,13,0,0" />
+                </StackPanel>
+
+                <!-- Sede -->
+                <StackPanel Orientation="Horizontal" Margin="35,20,0,26">
+                    <!-- Pin de ubicación -->
+                    <Canvas Width="16" Height="21" VerticalAlignment="Top" Margin="0,4,14,0">
+                        <Path Stroke="{StaticResource LateralTexto}" StrokeThickness="1.8" StrokeLineJoin="Round"
+                              Data="M8,20 C8,20 1,12.5 1,8 A7,7 0 0 1 15,8 C15,12.5 8,20 8,20 Z" />
+                        <Ellipse Canvas.Left="5.2" Canvas.Top="5.2" Width="5.6" Height="5.6"
+                                 Stroke="{StaticResource LateralTexto}" StrokeThickness="1.8" />
+                    </Canvas>
+                    <StackPanel>
+                        <TextBlock Text="Majes" Foreground="{StaticResource LateralTexto}" FontSize="14" />
+                        <TextBlock Text="Arequipa, Perú" Foreground="{StaticResource LateralTexto}" FontSize="14" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Módulos -->
+                <Button Style="{StaticResource BotonMenuActivo}" Tag="&#xE7BF;" IsHitTestVisible="False" Focusable="False">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F1" Foreground="#F3DED3" />
+                        <TextBlock Text="Nueva venta" FontWeight="SemiBold" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource BotonMenu}" Tag="&#xE8FD;" Focusable="False"
+                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Catálogo">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F2" />
+                        <TextBlock Text="Catálogo" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource BotonMenu}" Tag="&#xE77B;" Focusable="False"
+                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Clientes">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F3" />
+                        <TextBlock Text="Clientes" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource BotonMenu}" Tag="&#xE8A5;" Focusable="False"
+                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Compras">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F4" />
+                        <TextBlock Text="Compras" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource BotonMenu}" Tag="&#xE823;" Focusable="False"
+                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Historial">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F5" />
+                        <TextBlock Text="Historial" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource BotonMenu}" Tag="&#xE753;" Focusable="False"
+                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F9" />
+                        <TextBlock Text="Respaldo" />
+                    </DockPanel>
+                </Button>
             </StackPanel>
-        </Border>
+        </Grid>
 
-        <!-- Aviso de pérdida de conexión (T-06): no borra nada de la pantalla. -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource Aviso}" BorderBrush="{StaticResource Error}"
-                BorderThickness="0,0,0,2" Padding="12,6" DataContext="{Binding Conexion}"
-                Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
-            <DockPanel>
-                <Button DockPanel.Dock="Right" Content="_Reintentar" Command="{Binding ReintentarCommand}" />
-                <TextBlock Text="{Binding Aviso}" VerticalAlignment="Center" TextWrapping="Wrap"
-                           Foreground="{StaticResource Error}" FontWeight="Bold" />
-            </DockPanel>
-        </Border>
+        <!-- ============================================================
+             Contenido: Nueva venta.
+             ============================================================ -->
+        <Rectangle Grid.Column="1" Fill="{StaticResource Papel}" IsHitTestVisible="False" />
+        <DockPanel Grid.Column="1">
 
-        <!-- Barra de módulos. -->
-        <UniformGrid DockPanel.Dock="Top" Rows="1" Margin="8,6">
-            <Button Content="F1 Nueva venta" IsEnabled="False" />
-            <Button Content="F2 Catálogo" Command="{Binding ModuloPendienteCommand}" CommandParameter="Catálogo" />
-            <Button Content="F3 Clientes" Command="{Binding ModuloPendienteCommand}" CommandParameter="Clientes" />
-            <Button Content="F4 Compras" Command="{Binding ModuloPendienteCommand}" CommandParameter="Compras" />
-            <Button Content="F5 Historial" Command="{Binding ModuloPendienteCommand}" CommandParameter="Historial" />
-            <Button Content="F9 Respaldo" Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo" />
-        </UniformGrid>
+            <!-- Greca andina -->
+            <Border DockPanel.Dock="Top" Height="13" Background="{StaticResource Greca}" />
 
-        <!-- Barra de estado. -->
-        <StatusBar DockPanel.Dock="Bottom">
-            <StatusBarItem>
-                <TextBlock Text="{Binding Mensaje}" />
-            </StatusBarItem>
-        </StatusBar>
+            <!-- Pie: usuario, terminal, conexión y mensaje de estado. -->
+            <Border DockPanel.Dock="Bottom" Padding="36,0,34,0" Height="60"
+                    BorderBrush="{StaticResource Borde}" BorderThickness="0,1,0,0">
+                <DockPanel VerticalAlignment="Center">
+                    <TextBlock DockPanel.Dock="Right" Text="&#xE701;" Style="{StaticResource Icono}" FontSize="18"
+                               Margin="18,0,0,0" ToolTip="Red local" />
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <TextBlock Text="&#xEA8C;" Style="{StaticResource Icono}" FontSize="16" Margin="0,0,14,0" />
+                        <TextBlock Text="{Binding Usuario}" />
+                        <TextBlock Text="·" Margin="12,0" Foreground="{StaticResource TextoSuave}" />
+                        <TextBlock Text="{Binding Terminal}" Margin="0,0,20,0" />
 
-        <!-- Contenido de la venta. -->
-        <Grid Margin="12,4,12,12">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Cantidad, Agregar y Nuevo producto (T-17, T-13). -->
-            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top"
-                        DataContext="{Binding Venta}">
-                <Label Content="C_ant.:" Target="{Binding ElementName=CampoCantidad}" />
-                <TextBox x:Name="CampoCantidad" Width="70" FontSize="16" TextAlignment="Right"
-                         Text="{Binding CantidadTexto, UpdateSourceTrigger=PropertyChanged}"
-                         GotKeyboardFocus="CampoCantidad_GotKeyboardFocus"
-                         PreviewKeyDown="CampoCantidad_PreviewKeyDown" />
-                <Button Content="_Agregar" Style="{StaticResource BotonPrincipal}" Command="{Binding AgregarCommand}" />
-                <Button Content="+ Nuevo prod." Click="NuevoProducto_Click"
-                        ToolTip="Registrar un producto que no está en el catálogo (Ctrl+N)." />
-            </StackPanel>
-
-            <!-- Campo Producto con autocompletado (HU-02, T-16). -->
-            <DockPanel Grid.Row="0" DataContext="{Binding Buscador}">
-                <Label DockPanel.Dock="Left" Content="_Producto:" Target="{Binding ElementName=CampoProducto}" />
-                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource TextoError}" Text="{Binding Error}"
-                           Visibility="{Binding Error, Converter={StaticResource NuloAOculto}}" />
-                <Grid>
-                    <TextBox x:Name="CampoProducto" FontSize="16"
-                             Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}"
-                             PreviewKeyDown="CampoProducto_PreviewKeyDown"
-                             ToolTip="Escriba 3 letras o más del nombre del producto." />
-                    <TextBlock Text="Buscar por nombre... (autocompleta)" IsHitTestVisible="False"
-                               Margin="10,0" VerticalAlignment="Center" Foreground="{StaticResource Borde}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Text, ElementName=CampoProducto}" Value="">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <Popup IsOpen="{Binding MostrarSugerencias, Mode=OneWay}" PlacementTarget="{Binding ElementName=CampoProducto}"
-                           Placement="Bottom" StaysOpen="False" Width="{Binding ActualWidth, ElementName=CampoProducto}">
-                        <ListBox x:Name="ListaSugerencias" MaxHeight="320" ItemsSource="{Binding Sugerencias}"
-                                 HorizontalContentAlignment="Stretch"
-                                 SelectedItem="{Binding Seleccionado}"
-                                 PreviewKeyDown="ListaSugerencias_PreviewKeyDown"
-                                 MouseDoubleClick="ListaSugerencias_MouseDoubleClick">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <DockPanel Margin="0,2">
-                                        <TextBlock DockPanel.Dock="Right" Margin="0,0,24,0" FontWeight="Bold"
-                                                   Text="{Binding Precio, StringFormat='S/ {0:0.00}'}" />
-                                        <TextBlock DockPanel.Dock="Right" Margin="0,0,16,0" Foreground="{StaticResource Borde}"
-                                                   Text="{Binding Unidad}" />
-                                        <TextBlock Text="{Binding Nombre}" TextTrimming="CharacterEllipsis" />
-                                    </DockPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Popup>
-                </Grid>
-            </DockPanel>
-
-            <!-- Detalle de la venta (T-17). La cantidad se puede corregir en la tabla. -->
-            <DataGrid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,8,0,0" ItemsSource="{Binding Venta.Detalle}"
-                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
-                      CanUserReorderColumns="False" HeadersVisibility="Column" SelectionMode="Single"
-                      GridLinesVisibility="Horizontal" FontSize="15" RowHeight="30">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="N.°" Binding="{Binding Item}" IsReadOnly="True" Width="50" />
-                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" IsReadOnly="True" Width="*" />
-                    <DataGridTextColumn Header="Und." Binding="{Binding Unidad}" IsReadOnly="True" Width="60" />
-                    <DataGridTextColumn Header="Cant." Binding="{Binding Cantidad, StringFormat='0.###'}" Width="80" />
-                    <DataGridTextColumn Header="P. unit." Binding="{Binding PrecioUnitario, StringFormat='0.00'}" IsReadOnly="True" Width="90" />
-                    <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat='0.00', Mode=OneWay}" IsReadOnly="True" Width="100" />
-                    <DataGridTemplateColumn Width="80">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="Quitar" Margin="2" Padding="4,0" MinWidth="0"
-                                        Command="{Binding DataContext.Venta.QuitarCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-
-            <!-- Totales: los precios incluyen IGV (18 %). -->
-            <Border Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0" Padding="12,8" Background="White"
-                    BorderBrush="{StaticResource Borde}" BorderThickness="1" DataContext="{Binding Venta}">
-                <Grid HorizontalAlignment="Right">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="140" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="Op. gravada:" />
-                    <TextBlock Grid.Column="1" TextAlignment="Right" Text="{Binding OpGravada, StringFormat='0.00'}" />
-                    <TextBlock Grid.Row="1" Text="IGV (18 %):" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" TextAlignment="Right" Text="{Binding Igv, StringFormat='0.00'}" />
-                    <TextBlock Grid.Row="2" Text="TOTAL S/." FontSize="20" FontWeight="Bold" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" TextAlignment="Right" FontSize="20" FontWeight="Bold"
-                               Text="{Binding Total, StringFormat='0.00'}" />
-                </Grid>
+                        <!-- Indicador de conexión (T-06). -->
+                        <StackPanel Orientation="Horizontal" DataContext="{Binding Conexion}">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,8,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource Exito}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Conectado, FallbackValue=False}" Value="False">
+                                                <Setter Property="Fill" Value="{StaticResource Error}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Conectado" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Conectado, FallbackValue=False}" Value="False">
+                                                <Setter Property="Text" Value="Sin conexión" />
+                                                <Setter Property="Foreground" Value="{StaticResource Error}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Mensaje}" Foreground="{StaticResource TextoSuave}" FontSize="13"
+                               Margin="28,0,0,0" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
             </Border>
 
-            <!-- Acciones de la venta. Emitir llega en el Sprint 2 (HU-05). -->
-            <DockPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" LastChildFill="False">
-                <Button DockPanel.Dock="Left" Content="Cancelar (Esc)" Width="160" Click="CancelarVenta_Click" />
-                <Button DockPanel.Dock="Right" Content="EMITIR E IMPRIMIR (F10)" Width="280" FontSize="16"
-                        Style="{StaticResource BotonPrincipal}" IsEnabled="False"
-                        ToolTip="La emisión de boletas y facturas se implementa en el Sprint 2 (HU-05)." />
-            </DockPanel>
-        </Grid>
-    </DockPanel>
+            <Grid Margin="36,26,26,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="372" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Encabezado: título, fecha y hora. -->
+                <TextBlock Text="Nueva venta" Style="{StaticResource TituloSerif}" FontSize="58" Margin="-2,0,0,0" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,30,-12,0">
+                    <TextBlock Text="&#xE787;" Style="{StaticResource Icono}" FontSize="18" Margin="0,0,14,0" />
+                    <TextBlock x:Name="Fecha" FontSize="15" Margin="0,0,14,0" />
+                    <TextBlock x:Name="Hora" FontSize="15" />
+                </StackPanel>
+
+                <!-- Aviso de pérdida de conexión (T-06): no borra nada de la pantalla. -->
+                <Border Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
+                        Background="{StaticResource ErrorSuave}" BorderBrush="#E8B9AE" BorderThickness="1"
+                        DataContext="{Binding Conexion}"
+                        Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="_Reintentar" Height="34" Command="{Binding ReintentarCommand}" />
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE7BA;" Style="{StaticResource Icono}" Foreground="{StaticResource Error}"
+                                   Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding Aviso}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{StaticResource Error}" FontWeight="SemiBold" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Línea tenue bajo el título. -->
+                <Border Grid.Row="2" Height="1" Background="{StaticResource Borde}" VerticalAlignment="Top" Margin="0,14,0,0" />
+
+                <!-- Columna izquierda: búsqueda y detalle. -->
+                <Grid Grid.Row="2" Margin="0,24,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Búsqueda (HU-02, T-16) + cantidad y Agregar (T-17). -->
+                    <Grid Panel.ZIndex="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="21" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="13" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label Content="_Producto" Target="{Binding ElementName=CampoProducto}" />
+                        <Label Grid.Column="2" Content="C_antidad" Target="{Binding ElementName=CampoCantidad}" VerticalAlignment="Bottom" />
+
+                        <Grid Grid.Row="1" DataContext="{Binding Buscador}" VerticalAlignment="Top" Margin="0,0,0,0">
+                            <TextBox x:Name="CampoProducto" FontSize="16" MinHeight="42" Padding="44,0,10,0"
+                                     Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}"
+                                     PreviewKeyDown="CampoProducto_PreviewKeyDown"
+                                     ToolTip="Escriba 3 letras o más del nombre del producto." />
+                            <TextBlock Text="&#xE721;" Style="{StaticResource Icono}" FontSize="17" Margin="14,0,0,0" IsHitTestVisible="False"
+                                       HorizontalAlignment="Left" Foreground="{StaticResource Texto}" />
+                            <TextBlock Text="Buscar producto…  (cemento, clavo, tubo)" IsHitTestVisible="False"
+                                       Margin="44,0,10,0" VerticalAlignment="Center" FontSize="15"
+                                       Foreground="{StaticResource TextoTenue}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=CampoProducto}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Popup IsOpen="{Binding MostrarSugerencias, Mode=OneWay}" PlacementTarget="{Binding ElementName=CampoProducto}"
+                                   Placement="Bottom" VerticalOffset="-8" HorizontalOffset="-10" StaysOpen="False" AllowsTransparency="True">
+                                <Border Margin="10,2,10,16" Padding="0,6" CornerRadius="5" Background="{StaticResource Superficie}"
+                                        BorderBrush="{StaticResource Borde}" BorderThickness="1" Effect="{StaticResource SombraFuerte}"
+                                        Width="{Binding ActualWidth, ElementName=CampoProducto}">
+                                    <ListBox x:Name="ListaSugerencias" MaxHeight="360" ItemsSource="{Binding Sugerencias}"
+                                             BorderThickness="0" Background="Transparent"
+                                             HorizontalContentAlignment="Stretch"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                             ItemContainerStyle="{StaticResource ItemSugerencia}"
+                                             SelectedItem="{Binding Seleccionado}"
+                                             PreviewKeyDown="ListaSugerencias_PreviewKeyDown"
+                                             MouseDoubleClick="ListaSugerencias_MouseDoubleClick">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Left" Style="{StaticResource Miniatura}" Width="32" Height="38" Margin="0,0,16,0">
+                                                        <TextBlock Text="&#xE7B8;" Style="{StaticResource Icono}" FontSize="16"
+                                                                   HorizontalAlignment="Center" Foreground="#8C7B6B" />
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Nombre}" FontSize="14.5" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock FontSize="12" Opacity="0.85" Margin="0,1,0,0">
+                                                            <Run Text="{Binding Unidad, Mode=OneWay}" /><Run Text="   ·   " /><Run Text="{Binding Precio, Mode=OneWay, StringFormat='S/ {0:0.00}'}" />
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <!-- Cantidad con flechas. -->
+                        <Grid Grid.Row="1" Grid.Column="2" Width="112" VerticalAlignment="Bottom" Margin="0,0,0,1" DataContext="{Binding Venta}">
+                            <TextBox x:Name="CampoCantidad" MinHeight="46" FontSize="16" Padding="12,0,30,0"
+                                     Text="{Binding CantidadTexto, UpdateSourceTrigger=PropertyChanged}"
+                                     GotKeyboardFocus="CampoCantidad_GotKeyboardFocus"
+                                     PreviewKeyDown="CampoCantidad_PreviewKeyDown" />
+                            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0">
+                                <RepeatButton Style="{StaticResource BotonFlecha}" Content="&#xE70E;" Height="18" Click="SubirCantidad_Click"
+                                              ToolTip="Aumentar (flecha arriba)" />
+                                <RepeatButton Style="{StaticResource BotonFlecha}" Content="&#xE70D;" Height="18" Click="BajarCantidad_Click"
+                                              ToolTip="Disminuir (flecha abajo)" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Button Grid.Row="1" Grid.Column="4" Style="{StaticResource BotonPrincipal}" Height="49" Padding="16,0,18,0"
+                                FontSize="17" VerticalAlignment="Bottom" Command="{Binding Venta.AgregarCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid Width="22" Height="22" Margin="0,0,10,0">
+                                    <Ellipse Fill="White" />
+                                    <TextBlock Text="&#xE710;" Style="{StaticResource Icono}" FontSize="11" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Foreground="{StaticResource Acento}" />
+                                </Grid>
+                                <AccessText Text="_Agregar" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Row="1" Grid.Column="6" Height="49" Padding="10,0" FontSize="13" VerticalAlignment="Bottom"
+                                Click="NuevoProducto_Click"
+                                ToolTip="Registrar un producto que no está en el catálogo (Ctrl+N).">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" Style="{StaticResource Icono}" FontSize="11" Margin="0,0,8,0" />
+                                <TextBlock Text="Nuevo producto" />
+                            </StackPanel>
+                        </Button>
+
+                        <StackPanel Grid.Row="2" Grid.ColumnSpan="7">
+                            <TextBlock Style="{StaticResource TextoError}" Text="{Binding Buscador.Error}"
+                                       Visibility="{Binding Buscador.Error, Converter={StaticResource NuloAOculto}}" />
+                            <TextBlock Style="{StaticResource TextoError}" Text="{Binding Venta.Error}"
+                                       Visibility="{Binding Venta.Error, Converter={StaticResource NuloAOculto}}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Detalle de la venta (T-17). La cantidad se puede corregir en la tabla. -->
+                    <Border Grid.Row="1" Style="{StaticResource Tarjeta}" Margin="0,26,0,62">
+                        <Border CornerRadius="6" ClipToBounds="True">
+                            <Grid>
+                                <DataGrid ItemsSource="{Binding Venta.Detalle}"
+                                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                                          CanUserReorderColumns="False" CanUserResizeRows="False" CanUserResizeColumns="False"
+                                          HeadersVisibility="Column"
+                                          SelectionMode="Single" GridLinesVisibility="Horizontal"
+                                          HorizontalGridLinesBrush="{StaticResource Borde}"
+                                          Background="Transparent" BorderThickness="0" FontSize="15" RowHeight="72"
+                                          VerticalScrollBarVisibility="Auto"
+                                          ColumnHeaderStyle="{StaticResource CabeceraTabla}"
+                                          CellStyle="{StaticResource CeldaTabla}" RowStyle="{StaticResource FilaTabla}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="N.°" Binding="{Binding Item}" IsReadOnly="True" Width="56"
+                                                            HeaderStyle="{StaticResource CabeceraNumero}" ElementStyle="{StaticResource Centrado}" />
+                                        <DataGridTemplateColumn Header="Producto" Width="*" IsReadOnly="True">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel>
+                                                        <Border DockPanel.Dock="Left" Style="{StaticResource Miniatura}" Width="52" Height="52" Margin="0,0,22,0">
+                                                            <TextBlock Text="&#xE7B8;" Style="{StaticResource Icono}" FontSize="22"
+                                                                       HorizontalAlignment="Center" Foreground="#8C7B6B" />
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Descripcion}" VerticalAlignment="Center" FontSize="14.5" Margin="0,0,0,6"
+                                                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="44" />
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, StringFormat='0.###'}" Width="100"
+                                                            HeaderStyle="{StaticResource CabeceraNumero}" ElementStyle="{StaticResource Centrado}" />
+                                        <DataGridTextColumn Header="Unidad" Binding="{Binding Unidad}" IsReadOnly="True" Width="100"
+                                                            HeaderStyle="{StaticResource CabeceraNumero}" ElementStyle="{StaticResource Centrado}" />
+                                        <DataGridTextColumn Header="Precio unit." Binding="{Binding PrecioUnitario, StringFormat='0.00'}" IsReadOnly="True" Width="116"
+                                                            HeaderStyle="{StaticResource CabeceraDerecha}" ElementStyle="{StaticResource NumeroDerecha}" />
+                                        <DataGridTextColumn Header="Subtotal" Binding="{Binding Importe, StringFormat='0.00', Mode=OneWay}" IsReadOnly="True" Width="112"
+                                                            HeaderStyle="{StaticResource CabeceraDerecha}" ElementStyle="{StaticResource NumeroDerecha}" />
+                                        <DataGridTemplateColumn Width="64">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{StaticResource BotonQuitar}" HorizontalAlignment="Center"
+                                                            Command="{Binding DataContext.Venta.QuitarCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                            CommandParameter="{Binding}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Estado vacío. -->
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="0,48,0,0">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Venta.Detalle.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock Text="&#xE7BF;" Style="{StaticResource Icono}" FontSize="34"
+                                               HorizontalAlignment="Center" Foreground="{StaticResource TextoTenue}" />
+                                    <TextBlock Text="Aún no hay productos en la venta" Style="{StaticResource TituloSerif}" FontSize="18"
+                                               HorizontalAlignment="Center" Margin="0,14,0,4" />
+                                    <TextBlock Text="Escriba el nombre en Producto, elija con Enter y vuelva a pulsar Enter para agregar."
+                                               Foreground="{StaticResource TextoSuave}" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Border>
+                </Grid>
+
+                <!-- Columna derecha: resumen. Los precios incluyen IGV (18 %). -->
+                <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource Tarjeta}" Padding="26,22,20,26"
+                        VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="32" Margin="0,0,0,30" />
+
+                        <DockPanel Margin="0,0,6,24">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Venta.OpGravada, StringFormat='S/ {0:0.00}'}" FontSize="17" />
+                            <TextBlock Text="Op. gravada" FontSize="17" />
+                        </DockPanel>
+                        <DockPanel Margin="0,0,6,22">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Venta.Igv, StringFormat='S/ {0:0.00}'}" FontSize="17" />
+                            <TextBlock Text="IGV (18 %)" FontSize="17" />
+                        </DockPanel>
+
+                        <Border Height="1" Background="{StaticResource BordeFuerte}" Margin="0,0,6,34" />
+
+                        <TextBlock Text="TOTAL" Style="{StaticResource TituloSerif}" FontSize="22" Foreground="{StaticResource Acento}" />
+                        <TextBlock Style="{StaticResource TituloSerif}" FontSize="62" Foreground="{StaticResource Acento}"
+                                   HorizontalAlignment="Right" Margin="0,-12,-4,24"
+                                   Text="{Binding Venta.Total, StringFormat='S/ {0:0.00}'}" />
+
+                        <!-- La emisión de boletas y facturas llega en el Sprint 2 (HU-05). -->
+                        <Button Style="{StaticResource BotonEmitir}" Height="68" FontSize="19" Margin="0,0,6,0"
+                                IsEnabled="False" ToolTipService.ShowOnDisabled="True"
+                                ToolTip="La emisión de boletas y facturas se implementa en el Sprint 2 (HU-05).">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE749;" Style="{StaticResource Icono}" FontSize="26" Margin="0,0,22,0" />
+                                <TextBlock Text="Emitir e imprimir" VerticalAlignment="Center" />
+                                <TextBlock Text=" (F10)" FontWeight="Normal" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Descarta la venta en curso; también con Esc. -->
+                        <Button Height="46" FontSize="15" Margin="0,12,6,0" Click="CancelarVenta_Click"
+                                ToolTip="Descartar la venta en curso (Esc).">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE711;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,10,0" />
+                                <TextBlock Text="Cancelar venta" VerticalAlignment="Center" />
+                                <TextBlock Text=" (Esc)" FontWeight="Normal" VerticalAlignment="Center" Foreground="{StaticResource TextoSuave}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Grid>
 </Window>

@@ -15,6 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Cóndor, volcán y greca de la interfaz (recortados de imgs/). -->
+    <Resource Include="Recursos\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Plantilla de configuración; el condor.json real de cada PC no se versiona. -->
     <None Update="condor.ejemplo.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="condor.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('condor.json')" />

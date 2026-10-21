@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Condor.Presentacion.ViewModels;assembly=Condor.Presentacion"
         Title="Nuevo producto"
-        Width="520" SizeToContent="Height"
+        Width="540" SizeToContent="Height"
         ResizeMode="NoResize" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Superficie}"
         FocusManager.FocusedElement="{Binding ElementName=CampoNombre}">
 
     <Window.InputBindings>
@@ -13,54 +14,82 @@
     </Window.InputBindings>
 
     <StackPanel>
-        <Border Background="{StaticResource FondoCabecera}" BorderBrush="{StaticResource Borde}"
-                BorderThickness="0,0,0,1" Padding="12,8">
-            <TextBlock Text="Nuevo producto" FontWeight="Bold" FontSize="16" />
-        </Border>
+        <!-- Encabezado. -->
+        <DockPanel Margin="28,26,28,8">
+            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="12" Background="{StaticResource AcentoSuave}"
+                    Margin="0,0,14,0">
+                <TextBlock Text="&#xE8EC;" Style="{StaticResource Icono}" FontSize="20" Foreground="{StaticResource Acento}"
+                           HorizontalAlignment="Center" />
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Nuevo producto" FontSize="20" FontWeight="Bold" />
+                <TextBlock Text="Se agrega al catálogo y las otras PC lo ven al instante."
+                           Foreground="{StaticResource TextoSuave}" FontSize="13" />
+            </StackPanel>
+        </DockPanel>
 
-        <Grid Margin="16,12">
+        <!-- Formulario. -->
+        <Grid Margin="28,16,28,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="130" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Label Grid.Row="0" Content="_Nombre:" Target="{Binding ElementName=CampoNombre}" />
-            <TextBox Grid.Row="0" Grid.Column="1" x:Name="CampoNombre" MaxLength="150"
+            <Label Grid.ColumnSpan="3" Content="_Nombre del producto" Target="{Binding ElementName=CampoNombre}" />
+            <TextBox Grid.Row="1" Grid.ColumnSpan="3" x:Name="CampoNombre" MaxLength="150" FontSize="15"
                      Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" />
 
-            <Label Grid.Row="1" Content="_Precio S/.:" Target="{Binding ElementName=CampoPrecio}" />
-            <TextBox Grid.Row="1" Grid.Column="1" x:Name="CampoPrecio" Width="140" HorizontalAlignment="Left"
-                     TextAlignment="Right"
-                     Text="{Binding PrecioTexto, UpdateSourceTrigger=PropertyChanged}" />
+            <Label Grid.Row="3" Content="_Precio de venta (con IGV)" Target="{Binding ElementName=CampoPrecio}" />
+            <Grid Grid.Row="4">
+                <TextBox x:Name="CampoPrecio" FontSize="15" TextAlignment="Right" Padding="40,0,12,0"
+                         Text="{Binding PrecioTexto, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="S/" Margin="14,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                           FontWeight="SemiBold" Foreground="{StaticResource TextoTenue}" />
+            </Grid>
 
-            <Label Grid.Row="2" Content="_Unidad:" Target="{Binding ElementName=CampoUnidad}" />
-            <ComboBox Grid.Row="2" Grid.Column="1" x:Name="CampoUnidad" Width="140" Margin="4"
-                      HorizontalAlignment="Left" IsEditable="True"
+            <Label Grid.Row="3" Grid.Column="2" Content="_Unidad" Target="{Binding ElementName=CampoUnidad}" />
+            <ComboBox Grid.Row="4" Grid.Column="2" x:Name="CampoUnidad" IsEditable="True" FontSize="15"
                       ItemsSource="{x:Static vm:NuevoProductoViewModel.Unidades}"
                       Text="{Binding Unidad, UpdateSourceTrigger=PropertyChanged}" />
 
-            <Label Grid.Row="3" Content="Código barras:" />
-            <TextBox Grid.Row="3" Grid.Column="1" IsEnabled="False" Text="(opcional, futuro)"
-                     ToolTip="Se habilitará cuando se compre el lector (HU-13)." />
+            <Label Grid.Row="6" Grid.ColumnSpan="3" Content="Código de barras" />
+            <TextBox Grid.Row="7" Grid.ColumnSpan="3" IsEnabled="False" Text="Opcional · se habilitará con el lector (HU-13)" />
         </Grid>
 
-        <TextBlock Margin="16,0" Style="{StaticResource TextoError}" Text="{Binding Error}">
-            <TextBlock.Visibility>
-                <Binding Path="Error" Converter="{StaticResource NuloAOculto}" />
-            </TextBlock.Visibility>
-        </TextBlock>
+        <!-- Error de validación o de guardado. -->
+        <Border Margin="28,16,28,0" Padding="12,10" CornerRadius="8" Background="{StaticResource ErrorSuave}"
+                Visibility="{Binding Error, Converter={StaticResource NuloAOculto}}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="&#xE783;" Style="{StaticResource Icono}" FontSize="14"
+                           Foreground="{StaticResource Error}" Margin="0,0,10,0" VerticalAlignment="Top" />
+                <TextBlock Text="{Binding Error}" Style="{StaticResource TextoError}" Margin="0" />
+            </DockPanel>
+        </Border>
 
-        <Grid Margin="16,8,16,16">
-            <Button Content="Cancelar" HorizontalAlignment="Left" Width="150" IsCancel="True"
-                    Command="{Binding CancelarCommand}" />
-            <Button Content="_Guardar" HorizontalAlignment="Right" Width="150" IsDefault="True"
-                    Style="{StaticResource BotonPrincipal}" Command="{Binding GuardarCommand}" />
-        </Grid>
+        <!-- Acciones. -->
+        <Border Margin="0,26,0,0" Padding="28,16" Background="{StaticResource SuperficieAlterna}"
+                BorderBrush="{StaticResource Borde}" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancelar" Width="130" IsCancel="True" Command="{Binding CancelarCommand}" />
+                <Button Width="150" Margin="12,0,0,0" IsDefault="True"
+                        Style="{StaticResource BotonPrincipal}" Command="{Binding GuardarCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE73E;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                        <AccessText Text="_Guardar" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </Window>

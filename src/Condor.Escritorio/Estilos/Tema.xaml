@@ -3,51 +3,467 @@
                     xmlns:conv="clr-namespace:Condor.Escritorio.Convertidores">
 
     <conv:NuloAOcultoConverter x:Key="NuloAOculto" />
+    <BooleanToVisibilityConverter x:Key="BoolAVisible" />
 
-    <!-- Paleta: sobria y de alto contraste para el mostrador. -->
-    <SolidColorBrush x:Key="FondoVentana" Color="#F5F5F5" />
-    <SolidColorBrush x:Key="FondoCabecera" Color="#E3E3E3" />
-    <SolidColorBrush x:Key="Borde" Color="#7A7A7A" />
-    <SolidColorBrush x:Key="Texto" Color="#1A1A1A" />
-    <SolidColorBrush x:Key="Acento" Color="#1F4E79" />
-    <SolidColorBrush x:Key="Error" Color="#B00020" />
-    <SolidColorBrush x:Key="Aviso" Color="#FFF4CE" />
+    <!-- ================================================================
+         Paleta "Majes": fondo crema, barra lateral café oscuro y acento
+         terracota (el cóndor y la greca). Títulos con letra serif.
+         ================================================================ -->
+    <Color x:Key="ColorAcento">#B0522B</Color>
+    <SolidColorBrush x:Key="Acento" Color="{StaticResource ColorAcento}" />
+    <SolidColorBrush x:Key="AcentoHover" Color="#9E4724" />
+    <SolidColorBrush x:Key="AcentoPulsado" Color="#863B1D" />
+    <SolidColorBrush x:Key="AcentoSuave" Color="#F1DFD3" />
 
+    <SolidColorBrush x:Key="FondoVentana" Color="#EDE8DF" />
+    <SolidColorBrush x:Key="Superficie" Color="#F3EEE6" />
+    <SolidColorBrush x:Key="SuperficieAlterna" Color="#E8E1D5" />
+    <SolidColorBrush x:Key="SuperficieHover" Color="#E8E2D8" />
+    <SolidColorBrush x:Key="Borde" Color="#DFD8CD" />
+    <SolidColorBrush x:Key="BordeFuerte" Color="#D3CBBE" />
+    <SolidColorBrush x:Key="Texto" Color="#2A221D" />
+    <SolidColorBrush x:Key="TextoSuave" Color="#5E534A" />
+    <SolidColorBrush x:Key="TextoTenue" Color="#9A8F84" />
+
+    <SolidColorBrush x:Key="Lateral" Color="#2B2621" />
+    <SolidColorBrush x:Key="LateralHover" Color="#38322C" />
+    <SolidColorBrush x:Key="LateralTexto" Color="#F4EEE8" />
+    <SolidColorBrush x:Key="LateralTenue" Color="#AFA59E" />
+
+    <SolidColorBrush x:Key="Exito" Color="#2E9E4F" />
+    <SolidColorBrush x:Key="ExitoSuave" Color="#E1F0E2" />
+    <SolidColorBrush x:Key="Error" Color="#B3261E" />
+    <SolidColorBrush x:Key="ErrorSuave" Color="#F8E3DE" />
+    <SolidColorBrush x:Key="Aviso" Color="#F8E3DE" />
+
+    <FontFamily x:Key="Iconos">Segoe MDL2 Assets</FontFamily>
+    <FontFamily x:Key="Serif">Cambria, Georgia</FontFamily>
+
+    <DropShadowEffect x:Key="Sombra" BlurRadius="14" ShadowDepth="1" Direction="270" Opacity="0.07" Color="#3B2A1E" />
+    <DropShadowEffect x:Key="SombraFuerte" BlurRadius="22" ShadowDepth="5" Direction="270" Opacity="0.16" Color="#3B2A1E" />
+
+    <!-- Greca andina que corre sobre el contenido. -->
+    <!-- Grano de papel sobre el fondo crema y la barra lateral. -->
+    <ImageBrush x:Key="Papel" ImageSource="/Recursos/papel.png" TileMode="Tile" Stretch="None"
+                ViewportUnits="Absolute" Viewport="0,0,256,256" Opacity="0.12" />
+    <ImageBrush x:Key="PapelOscuro" ImageSource="/Recursos/papel_oscuro.png" TileMode="Tile" Stretch="None"
+                ViewportUnits="Absolute" Viewport="0,0,256,256" Opacity="0.3" />
+
+    <ImageBrush x:Key="Greca" ImageSource="/Recursos/greca.png" TileMode="Tile" Stretch="Uniform"
+                ViewportUnits="Absolute" Viewport="0,0,513,13" />
+
+    <!-- ================================================================
+         Base
+         ================================================================ -->
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Background" Value="{StaticResource FondoVentana}" />
         <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="UseLayoutRounding" Value="True" />
     </Style>
 
-    <Style TargetType="Button">
-        <Setter Property="Padding" Value="12,6" />
-        <Setter Property="Margin" Value="4" />
-        <Setter Property="MinWidth" Value="90" />
-        <Setter Property="Background" Value="White" />
+    <!-- Tarjeta crema con borde suave. -->
+    <Style x:Key="Tarjeta" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Superficie}" />
         <Setter Property="BorderBrush" Value="{StaticResource Borde}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Effect" Value="{StaticResource Sombra}" />
     </Style>
 
-    <Style x:Key="BotonPrincipal" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="BorderBrush" Value="{StaticResource Texto}" />
-    </Style>
-
-    <Style TargetType="TextBox">
-        <Setter Property="Padding" Value="4,3" />
-        <Setter Property="Margin" Value="4" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-
-    <Style TargetType="Label">
+    <Style x:Key="Icono" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Iconos}" />
+        <Setter Property="FontSize" Value="16" />
         <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="TituloSerif" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Serif}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+    </Style>
+
+    <Style x:Key="TituloSeccion" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextoSuave}" />
     </Style>
 
     <Style x:Key="TextoError" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource Error}" />
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="Margin" Value="4,2" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Margin" Value="2,6,0,0" />
+    </Style>
+
+    <Style TargetType="Label">
+        <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="0,0,0,6" />
+    </Style>
+
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{StaticResource Lateral}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- Miniatura del producto (aún no hay fotos en el catálogo). -->
+    <Style x:Key="Miniatura" TargetType="Border">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderBrush" Value="{StaticResource Borde}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#FBF8F3" Offset="0" />
+                    <GradientStop Color="#E4DCCF" Offset="1" />
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================
+         Botones
+         ================================================================ -->
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource Superficie}" />
+        <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BordeFuerte}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Fondo" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource SuperficieHover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Borde}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Fondo" Property="BorderBrush" Value="{StaticResource Acento}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BotonPrincipal" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource Acento}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Acento}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Fondo" Background="{TemplateBinding Background}" CornerRadius="5"
+                            Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" Effect="{StaticResource Sombra}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource AcentoHover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource AcentoPulsado}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Emitir e imprimir: llega en el Sprint 2 (HU-05). Mientras tanto está
+         deshabilitado, pero conserva el color de la maqueta. -->
+    <Style x:Key="BotonEmitir" TargetType="Button" BasedOn="{StaticResource BotonPrincipal}">
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="5"
+                            Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True" Effect="{StaticResource Sombra}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Botón sin fondo (acciones secundarias). -->
+    <Style x:Key="BotonFantasma" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextoSuave}" />
+    </Style>
+
+    <!-- Papelera de cada línea del detalle. -->
+    <Style x:Key="BotonQuitar" TargetType="Button" BasedOn="{StaticResource BotonFantasma}">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="ToolTip" Value="Quitar de la venta" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Fondo" Background="#E5DDD0" CornerRadius="5">
+                        <TextBlock x:Name="Glifo" Text="&#xE74D;" Style="{StaticResource Icono}" FontSize="15"
+                                   HorizontalAlignment="Center" Foreground="{StaticResource Acento}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource AcentoSuave}" />
+                            <Setter TargetName="Glifo" Property="Foreground" Value="{StaticResource AcentoPulsado}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Flechas del campo Cantidad. -->
+    <Style x:Key="BotonFlecha" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource TextoSuave}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border x:Name="Fondo" Background="Transparent" Width="22">
+                        <TextBlock Text="{TemplateBinding Content}" FontFamily="{StaticResource Iconos}" FontSize="10"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Acento}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Elemento del menú lateral. Tag = glifo del icono. -->
+    <Style x:Key="BotonMenu" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource LateralTexto}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Height" Value="50" />
+        <Setter Property="Margin" Value="0,3" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Fondo" Background="Transparent" Padding="30,0,34,0">
+                        <DockPanel VerticalAlignment="Center">
+                            <TextBlock DockPanel.Dock="Left" Text="{TemplateBinding Tag}" Style="{StaticResource Icono}"
+                                       FontSize="20" Margin="0,0,20,0" />
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource LateralHover}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Módulo actual: franja terracota a todo el ancho y sin acción. -->
+    <Style x:Key="BotonMenuActivo" TargetType="Button" BasedOn="{StaticResource BotonMenu}">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{StaticResource Acento}" Padding="30,0,34,0">
+                        <DockPanel VerticalAlignment="Center">
+                            <TextBlock DockPanel.Dock="Left" Text="{TemplateBinding Tag}" Style="{StaticResource Icono}"
+                                       FontSize="20" Margin="0,0,20,0" />
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Tecla de atajo del menú (F1, F2...): solo texto tenue a la derecha. -->
+    <Style x:Key="Tecla" TargetType="TextBlock">
+        <Setter Property="DockPanel.Dock" Value="Right" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontStyle" Value="Italic" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource LateralTenue}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ================================================================
+         Campos de texto
+         ================================================================ -->
+    <Style TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource Superficie}" />
+        <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BordeFuerte}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="SelectionBrush" Value="{StaticResource Acento}" />
+        <Setter Property="CaretBrush" Value="{StaticResource Texto}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Marco" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" SnapsToDevicePixels="True">
+                        <!-- Sin Margin: el TextBox ya aplica su Padding dentro de PART_ContentHost. -->
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Marco" Property="BorderBrush" Value="{StaticResource TextoTenue}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Marco" Property="BorderBrush" Value="{StaticResource Acento}" />
+                            <Setter TargetName="Marco" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Marco" Property="Background" Value="{StaticResource SuperficieAlterna}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextoTenue}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Background" Value="{StaticResource Superficie}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BordeFuerte}" />
+    </Style>
+
+    <!-- ================================================================
+         Lista de sugerencias: la elegida va en terracota con texto blanco.
+         ================================================================ -->
+    <Style x:Key="ItemSugerencia" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Fondo" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}" Margin="8,1">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource SuperficieHover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Fondo" Property="Background" Value="{StaticResource Acento}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================
+         Tabla del detalle
+         ================================================================ -->
+    <Style x:Key="CabeceraTabla" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource SuperficieAlterna}" />
+        <Setter Property="Foreground" Value="{StaticResource Texto}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Height" Value="46" />
+        <Setter Property="Padding" Value="22,0" />
+        <Setter Property="BorderBrush" Value="{StaticResource Borde}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+
+    <Style x:Key="CabeceraNumero" TargetType="DataGridColumnHeader" BasedOn="{StaticResource CabeceraTabla}">
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="CabeceraDerecha" TargetType="DataGridColumnHeader" BasedOn="{StaticResource CabeceraTabla}">
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="CeldaTabla" TargetType="DataGridCell">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="Transparent" Padding="22,0">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Texto}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="FilaTabla" TargetType="DataGridRow">
+        <Setter Property="Background" Value="{StaticResource Superficie}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource SuperficieAlterna}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource AcentoSuave}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NumeroDerecha" TargetType="TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="Centrado" TargetType="TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
 
 </ResourceDictionary>

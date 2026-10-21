@@ -6,13 +6,17 @@
     1. Arranca Docker Desktop si no está corriendo.
     2. Levanta PostgreSQL 16 en un contenedor (condor-ventas-pg) con sus datos
        en el volumen condor-ventas-datos, así que lo registrado se conserva entre ejecuciones.
-    3. Compila y publica la aplicación WPF. Si la PC tiene el SDK de .NET 8 lo usa;
-       si no, compila dentro de Docker (mcr.microsoft.com/dotnet/sdk:8.0).
-    4. Escribe condor.json apuntando al PostgreSQL local y abre CondorVentas.exe.
+    3. Compila y publica la aplicación WPF como un solo CondorVentas.exe. Si la PC
+       tiene el SDK de .NET 8 lo usa; si no, compila dentro de Docker
+       (mcr.microsoft.com/dotnet/sdk:8.0).
+    4. La primera vez que se crea la base, carga el catálogo de muestra
+       db/datos/lista_precios.csv con herramientas/Condor.CargaCatalogo (T-19).
+    5. Escribe condor.json apuntando al PostgreSQL local y abre CondorVentas.exe.
        Al arrancar, la app aplica las migraciones y registra la terminal (HU-14).
 
 .EXAMPLE
     .\ejecutar.ps1                 # compila y abre la aplicación
+    .\ejecutar.ps1 -CargarCatalogo # vuelve a cargar la lista de precios (omite los ya existentes)
     .\ejecutar.ps1 -SinCompilar    # abre la última versión compilada
     .\ejecutar.ps1 -Detener        # detiene el contenedor de PostgreSQL
     .\ejecutar.ps1 -BorrarDatos    # detiene PostgreSQL y borra su base de datos
@@ -26,6 +30,7 @@ param(
     [int]$Puerto = 5432,
     # No recompila: abre lo que ya está en .ejecutar\app.
     [switch]$SinCompilar,
+    [switch]$CargarCatalogo,
     [switch]$Detener,
     [switch]$BorrarDatos
 )
@@ -92,6 +97,7 @@ if ($Detener -or $BorrarDatos) {
 $estado = (& docker ps -a --filter "name=^$Contenedor$" --format '{{.State}}') 2>$null
 if (-not $estado) {
     Paso "Creando PostgreSQL 16 en el puerto $Puerto"
+    $CargarCatalogo = $true
     Invoke-Docker run -d --name $Contenedor --restart unless-stopped `
         -e "POSTGRES_DB=$BaseDatos" -e "POSTGRES_USER=$Usuario" -e "POSTGRES_PASSWORD=$Clave" `
         -p "${Puerto}:5432" -v "${Volumen}:/var/lib/postgresql/data" `
@@ -114,7 +120,12 @@ if ($LASTEXITCODE -ne 0) { throw "PostgreSQL no respondió. Revise: docker logs 
 if (-not $SinCompilar -or -not (Test-Path $Exe)) {
     if (Test-Path $Salida) { Remove-Item -Recurse -Force $Salida }
     $proyecto = 'src/Condor.Escritorio/Condor.Escritorio.csproj'
-    $opciones = @('-c', 'Release', '-r', 'win-x64', '--self-contained', 'true', '-p:EnableWindowsTargeting=true', '-v', 'q', '-nologo')
+    # Se publica como un solo CondorVentas.exe (con .NET y las DLL adentro): el
+    # Control inteligente de aplicaciones de Windows bloqueaba las DLL sueltas
+    # sin firma (CondorVentas.dll), mientras que el .exe único sí abre.
+    $opciones = @('-c', 'Release', '-r', 'win-x64', '--self-contained', 'true',
+                  '-p:PublishSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true',
+                  '-p:EnableWindowsTargeting=true', '-v', 'q', '-nologo')
 
     if (Get-Command dotnet -ErrorAction SilentlyContinue) {
         Paso 'Compilando con el SDK de .NET de esta PC'
@@ -134,7 +145,37 @@ if (-not $SinCompilar -or -not (Test-Path $Exe)) {
 }
 if (-not (Test-Path $Exe)) { throw "No se generó $Exe" }
 
-# --- 4. Configurar y abrir ---------------------------------------------------
+# --- 4. Catálogo de muestra (T-19) -------------------------------------------
+if ($CargarCatalogo) {
+    Paso 'Cargando el catálogo de muestra (db/datos/lista_precios.csv)'
+    $herramienta = 'herramientas/Condor.CargaCatalogo'
+    $lista = 'db/datos/lista_precios.csv'
+    $carpetaConfig = Join-Path $PSScriptRoot '.ejecutar\carga'
+    $hayDotnet = [bool](Get-Command dotnet -ErrorAction SilentlyContinue)
+    New-Item -ItemType Directory -Force $carpetaConfig | Out-Null
+    # Desde un contenedor, el PostgreSQL de esta PC se alcanza en host.docker.internal.
+    [ordered]@{
+        Servidor  = $(if ($hayDotnet) { 'localhost' } else { 'host.docker.internal' })
+        Puerto    = $Puerto
+        BaseDatos = $BaseDatos
+        Usuario   = $Usuario
+        Clave     = $Clave
+    } | ConvertTo-Json | Set-Content -Path (Join-Path $carpetaConfig 'condor.json') -Encoding UTF8
+
+    if ($hayDotnet) {
+        & dotnet run --project $herramienta -- $lista --config $carpetaConfig
+    } else {
+        $comando = "cp -r /repo /tmp/src && cd /tmp/src && rm -rf .git .ejecutar && " +
+                   "find . -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} + && " +
+                   "dotnet run -v q --project $herramienta -- $lista --config /cfg"
+        & docker run --rm -v "${PSScriptRoot}:/repo:ro" -v "${carpetaConfig}:/cfg:ro" `
+            -v 'condor-nuget:/root/.nuget/packages' mcr.microsoft.com/dotnet/sdk:8.0 sh -c $comando
+    }
+    # Código 2 = algunas filas con error (ya informadas arriba); no impide abrir la app.
+    if ($LASTEXITCODE -notin 0, 2) { Write-Warning 'No se pudo cargar el catálogo; la app se abrirá con el catálogo vacío.' }
+}
+
+# --- 5. Configurar y abrir ---------------------------------------------------
 Paso 'Escribiendo condor.json'
 $config = [ordered]@{
     Servidor             = 'localhost'

@@ -1,15 +1,28 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Threading;
 using Condor.Presentacion.ViewModels;
 
 namespace Condor.Escritorio.Vistas;
 
 public partial class MainWindow : Window
 {
+    private static readonly CultureInfo Peru = new("es-PE");
+
     public MainWindow()
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => PintarBarraTitulo();
+
+        // Fecha y hora del encabezado.
+        MostrarFechaHora();
+        var reloj = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        reloj.Tick += (_, _) => MostrarFechaHora();
+        reloj.Start();
 
         // Tras agregar una línea, el cursor vuelve al campo Producto (T-17).
         DataContextChanged += (_, e) =>
@@ -89,13 +102,65 @@ public partial class MainWindow : Window
         CampoCantidad.Focus();
     }
 
-    // Cantidad: Enter agrega la línea al detalle (criterio 2 de HU-02).
+    // Cantidad: Enter agrega la línea al detalle (criterio 2 de HU-02);
+    // las flechas arriba/abajo suben o bajan la cantidad de uno en uno.
     private void CampoCantidad_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter || Vm is null)
+        if (Vm is null)
             return;
-        Vm.Venta.Agregar();
+        switch (e.Key)
+        {
+            case Key.Enter:
+                Vm.Venta.Agregar();
+                break;
+            case Key.Up:
+                CambiarCantidad(+1);
+                break;
+            case Key.Down:
+                CambiarCantidad(-1);
+                break;
+            default:
+                return;
+        }
         e.Handled = true;
+    }
+
+    private void SubirCantidad_Click(object sender, RoutedEventArgs e) => CambiarCantidad(+1);
+
+    private void BajarCantidad_Click(object sender, RoutedEventArgs e) => CambiarCantidad(-1);
+
+    private void CambiarCantidad(int paso)
+    {
+        var venta = Vm?.Venta;
+        if (venta is null)
+            return;
+        NuevoProductoViewModel.IntentarLeerPrecio(venta.CantidadTexto, out var actual);
+        venta.CantidadTexto = Math.Max(1, Math.Floor(actual) + paso).ToString("0", CultureInfo.InvariantCulture);
+        CampoCantidad.CaretIndex = CampoCantidad.Text.Length;
+    }
+
+    // Barra de título crema como el resto de la ventana (Windows 11; en
+    // Windows 10 la llamada no hace nada y queda la barra del sistema).
+    private void PintarBarraTitulo()
+    {
+        var ventana = new WindowInteropHelper(this).Handle;
+        var fondo = 0x00DFE8ED; // #EDE8DF en formato 0x00BBGGRR
+        var texto = 0x001D222A; // #2A221D
+        DwmSetWindowAttribute(ventana, DwmwaCaptionColor, ref fondo, sizeof(int));
+        DwmSetWindowAttribute(ventana, DwmwaTextColor, ref texto, sizeof(int));
+    }
+
+    private const int DwmwaCaptionColor = 35;
+    private const int DwmwaTextColor = 36;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int atributo, ref int valor, int tamano);
+
+    private void MostrarFechaHora()
+    {
+        var ahora = DateTime.Now;
+        Fecha.Text = ahora.ToString("d MMM yyyy", Peru);
+        Hora.Text = ahora.ToString("HH:mm", Peru);
     }
 
     private void CampoCantidad_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
