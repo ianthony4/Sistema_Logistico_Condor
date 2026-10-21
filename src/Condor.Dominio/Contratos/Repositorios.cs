@@ -18,6 +18,21 @@ public interface IProductoRepositorio
 }
 
 /// <summary>
+/// Clientes de los comprobantes nominativos (HU-03). Lo implementa Condor.Datos.
+/// </summary>
+public interface IClienteRepositorio
+{
+    /// <summary>Cliente con ese DNI o RUC; null si aún no está registrado.</summary>
+    Task<Cliente?> BuscarPorDocumentoAsync(TipoDocumento tipo, string numero, CancellationToken ct = default);
+
+    /// <summary>
+    /// Registra un cliente nuevo y lo devuelve con su Id. Lanza
+    /// ClienteDuplicadoException si el documento ya estaba registrado.
+    /// </summary>
+    Task<Cliente> RegistrarAsync(Cliente cliente, CancellationToken ct = default);
+}
+
+/// <summary>
 /// Numeración de comprobantes en la base de datos central (HU-16).
 /// </summary>
 public interface ISerieRepositorio
