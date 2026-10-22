@@ -33,6 +33,14 @@ public interface IClienteRepositorio
 }
 
 /// <summary>
+/// Datos de la ferretería para la cabecera de los comprobantes (HU-12).
+/// </summary>
+public interface IEmpresaRepositorio
+{
+    Task<Empresa> ObtenerAsync(CancellationToken ct = default);
+}
+
+/// <summary>
 /// Numeración de comprobantes en la base de datos central (HU-16).
 /// </summary>
 public interface ISerieRepositorio
