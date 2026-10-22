@@ -53,7 +53,9 @@ erDiagram
         numeric op_gravada
         numeric igv
         numeric total
-        varchar estado_sunat
+        varchar estado_sunat "PENDIENTE hasta el envío (HU-07)"
+        int impresiones "veces impreso en la ticketera (HU-12)"
+        timestamptz impreso_en
     }
     COMPROBANTE_DETALLE {
         bigint id PK
@@ -65,7 +67,18 @@ erDiagram
         numeric precio_unitario
         numeric importe
     }
+    EMPRESA {
+        int id PK "siempre 1"
+        char ruc
+        varchar razon_social
+        varchar nombre_comercial
+        varchar direccion
+        varchar telefono
+    }
 ```
+
+`EMPRESA` no se relaciona con las demás tablas: guarda los datos de la
+ferretería que se imprimen en la cabecera de cada ticket (migración V005).
 
 ## Decisiones
 
@@ -78,6 +91,21 @@ erDiagram
 | `comprobante_detalle.descripcion` y `precio_unitario` se copian del producto. | Si el producto cambia de precio, el comprobante emitido no cambia. |
 | `terminal` guarda el nombre del equipo. | Cada documento registra desde qué PC se emitió (criterio de HU-14). |
 | `usuario` es texto fijo `MAESTRO`. | Perfil único sin credenciales (RF-14). |
+| `cliente` es único por `(tipo_documento, numero_documento)`. | Un DNI o RUC se registra una sola vez aunque dos PC lo intenten a la vez (HU-03). |
+| `comprobante` exige `op_gravada + igv = total`. | Un error de cálculo no puede llegar a un comprobante emitido (HU-05). |
+| `comprobante.impresiones` empieza en 0. | Si la ticketera falla, el comprobante queda registrado y se sabe que falta imprimirlo (HU-12). |
+| `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
+
+## Datos de la empresa
+
+La migración V005 deja valores provisionales. Antes del piloto se reemplazan
+por los de la ficha RUC del local, desde `psql` en la PC principal:
+
+```sql
+UPDATE empresa
+SET ruc = '20XXXXXXXXX', razon_social = '...', direccion = '...', telefono = '...'
+WHERE id = 1;
+```
 
 Las clases de `src/Condor.Dominio` reflejan estas tablas. Las sentencias SQL
 están en `db/migraciones` (T-03).
