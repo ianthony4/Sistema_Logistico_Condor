@@ -41,6 +41,29 @@ public interface IEmpresaRepositorio
 }
 
 /// <summary>
+/// Comprobantes emitidos (HU-05, HU-12). Lo implementa Condor.Datos.
+/// </summary>
+public interface IComprobanteRepositorio
+{
+    /// <summary>
+    /// Guarda el comprobante preparado (EmisionComprobante.Preparar) con el
+    /// siguiente número de su serie, todo en una sola transacción: si algo
+    /// falla no queda ni el comprobante ni el número usado. Devuelve el
+    /// comprobante con su Id, número y fecha.
+    /// </summary>
+    Task<Comprobante> EmitirAsync(Comprobante comprobante, CancellationToken ct = default);
+
+    /// <summary>Comprobante con su detalle y su cliente, para reimprimirlo; null si no existe.</summary>
+    Task<Comprobante?> ObtenerAsync(long id, CancellationToken ct = default);
+
+    /// <summary>Últimos comprobantes emitidos (sin detalle), del más reciente al más antiguo.</summary>
+    Task<IReadOnlyList<Comprobante>> ListarRecientesAsync(int limite = 30, CancellationToken ct = default);
+
+    /// <summary>Anota que el comprobante salió impreso (suma una impresión).</summary>
+    Task RegistrarImpresionAsync(long id, CancellationToken ct = default);
+}
+
+/// <summary>
 /// Numeración de comprobantes en la base de datos central (HU-16).
 /// </summary>
 public interface ISerieRepositorio
