@@ -1,4 +1,5 @@
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Validacion;
 
 namespace Condor.Pruebas.Infraestructura;
 
@@ -23,6 +24,44 @@ public static class DatosPrueba
 
     public static Producto Nuevo(string nombre, decimal precio, string unidad = "UND") =>
         new() { Nombre = nombre, Precio = precio, Unidad = unidad };
+
+    // Clientes (HU-03): un vecino con DNI y una constructora con RUC.
+    public static Cliente ClienteDni(string? dni = null) => new()
+    {
+        TipoDocumento = TipoDocumento.Dni,
+        NumeroDocumento = dni ?? "45879632",
+        Nombre = "Juan Pérez Quispe",
+        Direccion = "Calle Los Pinos 214, El Pedregal",
+    };
+
+    public static Cliente ClienteRuc(string? ruc = null) => new()
+    {
+        TipoDocumento = TipoDocumento.Ruc,
+        NumeroDocumento = ruc ?? "20131312955",
+        Nombre = "Constructora Valle de Majes S.A.C.",
+        Direccion = "Av. Principal 450, Majes",
+    };
+
+    public static IReadOnlyList<Cliente> Clientes() => new[] { ClienteDni(), ClienteRuc() };
+
+    /// <summary>Datos de la ferretería como los deja la migración V005.</summary>
+    public static Empresa Empresa() => new()
+    {
+        Ruc = "20600000005",
+        RazonSocial = "FERRETERÍA CÓNDOR MAJES S.A.C.",
+        NombreComercial = "Ferretería Cóndor",
+        Direccion = "Majes, Caylloma - Arequipa",
+    };
+
+    /// <summary>DNI al azar, para que las pruebas con base de datos no choquen entre ejecuciones.</summary>
+    public static string DniNuevo() => Random.Shared.Next(10_000_000, 99_999_999).ToString();
+
+    /// <summary>RUC de persona jurídica al azar, con su dígito verificador correcto.</summary>
+    public static string RucNuevo()
+    {
+        var primerosDiez = "20" + Random.Shared.Next(10_000_000, 99_999_999);
+        return primerosDiez + ValidadorDocumento.DigitoVerificadorRuc(primerosDiez);
+    }
 
     /// <summary>
     /// Nombre único por ejecución, para que las pruebas de integración no
