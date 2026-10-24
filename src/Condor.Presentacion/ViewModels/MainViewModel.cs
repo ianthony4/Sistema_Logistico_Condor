@@ -15,7 +15,8 @@ public sealed class MainViewModel : ObservableObject
     private EstadoConexionViewModel? _conexion;
 
     /// <param name="productos">Catálogo; si es null no se muestra el buscador.</param>
-    public MainViewModel(IProductoRepositorio? productos = null)
+    /// <param name="clientes">Clientes; si es null no se muestra el panel Cliente (HU-03).</param>
+    public MainViewModel(IProductoRepositorio? productos = null, IClienteRepositorio? clientes = null)
     {
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
@@ -32,6 +33,12 @@ public sealed class MainViewModel : ObservableObject
             Buscador = new BuscadorProductoViewModel(productos);
             Buscador.ProductoElegido += AlElegirProducto;
             Buscador.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        }
+
+        if (clientes is not null)
+        {
+            Cliente = new ClienteVentaViewModel(clientes);
+            Cliente.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         }
     }
 
@@ -84,10 +91,22 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Campo Producto con autocompletado (HU-02).</summary>
     public BuscadorProductoViewModel? Buscador { get; }
 
+    /// <summary>Cliente de la venta: DNI o RUC con Buscar (HU-03).</summary>
+    public ClienteVentaViewModel? Cliente { get; }
+
     /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
 
     public void IniciarSesion(Sesion sesion) => Sesion = sesion;
+
+    /// <summary>Descarta la venta en curso: detalle, producto a medio elegir y cliente (Esc).</summary>
+    public void CancelarVenta()
+    {
+        Venta.Cancelar();
+        Buscador?.Limpiar();
+        Cliente?.Limpiar();
+        Mensaje = "Venta cancelada.";
+    }
 
     /// <summary>
     /// ViewModel del diálogo Nuevo producto (HU-01). Si lo escrito en el campo
