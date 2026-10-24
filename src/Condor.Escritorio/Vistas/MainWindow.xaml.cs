@@ -178,16 +178,15 @@ public partial class MainWindow : Window
 
     private void CancelarVenta_Click(object sender, RoutedEventArgs e)
     {
-        var venta = Vm?.Venta;
-        if (venta is null || venta.Detalle.Count == 0)
+        var vm = Vm;
+        if (vm is null || vm.Venta.Detalle.Count == 0)
             return;
 
         var respuesta = MessageBox.Show(this, "¿Descartar la venta en curso?", "Cancelar venta",
             MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
         if (respuesta == MessageBoxResult.Yes)
         {
-            venta.Cancelar();
-            Buscador?.Limpiar();
+            vm.CancelarVenta();
             CampoProducto.Focus();
         }
     }
