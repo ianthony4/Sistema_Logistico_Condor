@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18)
+# Pruebas (T-10, T-14, T-18, T-25)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/` | Unitarias: no necesitan base de datos. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`). |
-| `Infraestructura/` | Datos de prueba, repositorio en memoria y conexión a la BD de pruebas. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes) y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
