@@ -50,6 +50,20 @@ public partial class MainWindow : Window
         CampoProducto.Focus();
     }
 
+    // Diálogo Nuevo cliente (HU-03, T-24): al guardar, el cliente queda
+    // elegido en la venta en curso y se vuelve al campo Producto.
+    private void NuevoCliente_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearNuevoCliente();
+        if (vm is null)
+            return;
+
+        var dialogo = new NuevoClienteWindow(vm) { Owner = this };
+        if (dialogo.ShowDialog() == true && vm.Guardado is not null)
+            Vm!.ClienteRegistrado(vm.Guardado);
+        CampoProducto.Focus();
+    }
+
     // Teclado del campo Producto: flecha abajo entra a la lista, Enter elige
     // la primera sugerencia y Esc cierra la lista. Así se vende sin mouse.
     private void CampoProducto_PreviewKeyDown(object sender, KeyEventArgs e)
