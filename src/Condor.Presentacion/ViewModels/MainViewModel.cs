@@ -10,6 +10,7 @@ namespace Condor.Presentacion.ViewModels;
 public sealed class MainViewModel : ObservableObject
 {
     private readonly IProductoRepositorio? _productos;
+    private readonly IClienteRepositorio? _clientes;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -35,6 +36,7 @@ public sealed class MainViewModel : ObservableObject
             Buscador.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         }
 
+        _clientes = clientes;
         if (clientes is not null)
         {
             Cliente = new ClienteVentaViewModel(clientes);
@@ -129,6 +131,29 @@ public sealed class MainViewModel : ObservableObject
     {
         Buscador?.Elegir(producto);
         Mensaje = $"Producto registrado: {producto.Nombre} - S/ {producto.Precio:0.00}. Ya está disponible en las tres PC.";
+    }
+
+    /// <summary>
+    /// ViewModel del diálogo Nuevo cliente (HU-03, criterio 2). Propone el DNI
+    /// o RUC digitado en el panel Cliente.
+    /// </summary>
+    public NuevoClienteViewModel? CrearNuevoCliente()
+    {
+        if (_clientes is null)
+            return null;
+
+        var vm = new NuevoClienteViewModel(_clientes);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        if (!string.IsNullOrWhiteSpace(Cliente?.Documento))
+            vm.Proponer(Cliente.Documento);
+        return vm;
+    }
+
+    /// <summary>Tras guardar en el diálogo: el cliente queda elegido en la venta en curso.</summary>
+    public void ClienteRegistrado(Cliente cliente)
+    {
+        Cliente?.Seleccionar(cliente);
+        Mensaje = $"Cliente registrado: {cliente.Nombre} ({cliente.Documento}).";
     }
 
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>

@@ -483,7 +483,7 @@
                         </Border>
 
                         <TextBlock Margin="2,10,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextoSuave}"
-                                   Text="Ese documento no está registrado."
+                                   Text="Ese documento no está registrado. Pulse Nuevo cliente para registrarlo."
                                    Visibility="{Binding NoEncontrado, Converter={StaticResource BoolAVisible}}" />
 
                         <!-- Sin cliente: la boleta sale sin DNI. -->
@@ -505,6 +505,15 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
+
+                        <!-- Registrar al cliente que no se encontró (HU-03, T-24). -->
+                        <Button HorizontalAlignment="Left" Margin="0,14,0,0" Height="38" Padding="12,0" FontSize="13"
+                                Click="NuevoCliente_Click" ToolTip="Registrar un cliente con su DNI o RUC (Alt+L).">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE710;" Style="{StaticResource Icono}" FontSize="11" Margin="0,0,8,0" />
+                                <AccessText Text="Nuevo c_liente" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
 
