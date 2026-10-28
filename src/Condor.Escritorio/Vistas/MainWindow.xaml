@@ -520,7 +520,19 @@
                 <!-- Resumen. Los precios incluyen IGV (18 %). -->
                 <Border Style="{StaticResource Tarjeta}" Padding="26,22,20,26">
                     <StackPanel>
-                        <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="30" Margin="0,0,0,24" />
+                        <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="30" Margin="0,0,0,18" />
+
+                        <!-- Tipo de comprobante (HU-05, T-29). La factura llega con HU-06. -->
+                        <UniformGrid Columns="3" Margin="0,0,0,24" DataContext="{Binding Emision}"
+                                     Visibility="{Binding Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
+                                         Content="Boleta" IsChecked="{Binding EsBoleta}" ToolTip="Boleta sin DNI (hasta S/ 700.00)." />
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
+                                         Content="Con DNI" IsChecked="{Binding EsBoletaConDni}" ToolTip="Boleta con el DNI del cliente." />
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
+                                         Content="Factura" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
+                                         ToolTip="La factura con RUC se habilita con HU-06 (Sprint 4)." />
+                        </UniformGrid>
 
                         <DockPanel Margin="0,0,6,24">
                             <TextBlock DockPanel.Dock="Right" Text="{Binding Venta.OpGravada, StringFormat='S/ {0:0.00}'}" FontSize="17" />
@@ -538,16 +550,22 @@
                                    HorizontalAlignment="Right" Margin="0,-12,-4,24"
                                    Text="{Binding Venta.Total, StringFormat='S/ {0:0.00}'}" />
 
-                        <!-- La emisión de boletas y facturas llega en el Sprint 2 (HU-05). -->
+                        <!-- Emite la boleta con el siguiente número de B001 (HU-05, T-29). -->
                         <Button Style="{StaticResource BotonEmitir}" Height="68" FontSize="19" Margin="0,0,6,0"
-                                IsEnabled="False" ToolTipService.ShowOnDisabled="True"
-                                ToolTip="La emisión de boletas y facturas se implementa en el Sprint 2 (HU-05).">
+                                Command="{Binding Emision.EmitirCommand}" ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Guarda el comprobante en la base central e imprime el ticket (F10).">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE749;" Style="{StaticResource Icono}" FontSize="26" Margin="0,0,22,0" />
                                 <TextBlock Text="Emitir e imprimir" VerticalAlignment="Center" />
                                 <TextBlock Text=" (F10)" FontWeight="Normal" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+
+                        <!-- Por qué no se emitió: falta el DNI, sin conexión... -->
+                        <Border Margin="0,12,6,0" Padding="12,9" CornerRadius="5" Background="{StaticResource ErrorSuave}"
+                                Visibility="{Binding Emision.Error, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                            <TextBlock Text="{Binding Emision.Error}" Style="{StaticResource TextoError}" Margin="0" />
+                        </Border>
 
                         <!-- Descarta la venta en curso; también con Esc. -->
                         <Button Height="46" FontSize="15" Margin="0,12,6,0" Click="CancelarVenta_Click"

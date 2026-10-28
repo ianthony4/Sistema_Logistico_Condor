@@ -17,7 +17,9 @@ public sealed class MainViewModel : ObservableObject
 
     /// <param name="productos">Catálogo; si es null no se muestra el buscador.</param>
     /// <param name="clientes">Clientes; si es null no se muestra el panel Cliente (HU-03).</param>
-    public MainViewModel(IProductoRepositorio? productos = null, IClienteRepositorio? clientes = null)
+    /// <param name="comprobantes">Comprobantes; si es null el botón Emitir no está disponible (HU-05).</param>
+    public MainViewModel(IProductoRepositorio? productos = null, IClienteRepositorio? clientes = null,
+        IComprobanteRepositorio? comprobantes = null)
     {
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
@@ -41,6 +43,13 @@ public sealed class MainViewModel : ObservableObject
         {
             Cliente = new ClienteVentaViewModel(clientes);
             Cliente.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        }
+
+        if (comprobantes is not null)
+        {
+            Emision = new EmisionViewModel(comprobantes, Venta, Cliente, () => Sesion);
+            Emision.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+            Emision.Emitido += AlEmitir;
         }
     }
 
@@ -95,6 +104,9 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>Cliente de la venta: DNI o RUC con Buscar (HU-03).</summary>
     public ClienteVentaViewModel? Cliente { get; }
+
+    /// <summary>Tipo de comprobante y Emitir e imprimir, F10 (HU-05).</summary>
+    public EmisionViewModel? Emision { get; }
 
     /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
@@ -158,6 +170,15 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>
     public void AlCambiarCatalogo() => Buscador?.Refrescar();
+
+    /// <summary>Comprobante guardado: la pantalla queda lista para la siguiente venta.</summary>
+    private void AlEmitir(Comprobante comprobante)
+    {
+        Venta.Cancelar();
+        Buscador?.Limpiar();
+        Cliente?.Limpiar();
+        Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida. Total S/ {comprobante.Total:0.00}.";
+    }
 
     private void AlElegirProducto(Producto producto)
     {
