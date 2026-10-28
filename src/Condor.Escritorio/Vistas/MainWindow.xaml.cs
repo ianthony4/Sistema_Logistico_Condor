@@ -24,11 +24,14 @@ public partial class MainWindow : Window
         reloj.Tick += (_, _) => MostrarFechaHora();
         reloj.Start();
 
-        // Tras agregar una línea, el cursor vuelve al campo Producto (T-17).
+        // Tras agregar una línea o emitir, el cursor vuelve al campo Producto (T-17, T-29).
         DataContextChanged += (_, e) =>
         {
-            if (e.NewValue is MainViewModel vm)
-                vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
+            if (e.NewValue is not MainViewModel vm)
+                return;
+            vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
+            if (vm.Emision is not null)
+                vm.Emision.Emitido += _ => CampoProducto.Focus();
         };
     }
 
@@ -181,11 +184,19 @@ public partial class MainWindow : Window
         CampoCantidad.SelectAll();
 
     // Esc fuera de la lista de sugerencias: descartar la venta en curso.
+    // F10: emitir e imprimir (HU-05). Windows trata F10 como tecla de sistema
+    // (activa el menú), por eso llega como Key.System y no sirve un KeyBinding.
     private void Ventana_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        var tecla = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (tecla == Key.Escape)
         {
             CancelarVenta_Click(sender, e);
+            e.Handled = true;
+        }
+        else if (tecla == Key.F10 && Vm?.Emision is { } emision)
+        {
+            _ = emision.EmitirCommand.EjecutarAsync();
             e.Handled = true;
         }
     }
