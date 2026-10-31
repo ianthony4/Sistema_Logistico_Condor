@@ -4,7 +4,10 @@ using System.Windows.Threading;
 using Condor.Datos;
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Impresion;
+using Condor.Escritorio.Impresion;
 using Condor.Escritorio.Vistas;
+using Condor.Impresion;
 using Condor.Presentacion.ViewModels;
 
 namespace Condor.Escritorio;
@@ -41,8 +44,8 @@ public partial class App : Application
 
         // HU-14: se abre directamente la pantalla Nueva venta con el perfil
         // MAESTRO, sin pedir usuario ni contraseña.
-        _vm = new MainViewModel(new ProductoRepositorio(Conexiones), new ClienteRepositorio(Conexiones),
-            new ComprobanteRepositorio(Conexiones));
+        var comprobantes = new ComprobanteRepositorio(Conexiones);
+        _vm = new MainViewModel(new ProductoRepositorio(Conexiones), new ClienteRepositorio(Conexiones), comprobantes);
         _vm.IniciarSesion(Sesion.Local(nombreEquipo));
 
         // T-06: cada 5 s se comprueba la PC principal; si no responde se
@@ -53,6 +56,13 @@ public partial class App : Application
         _monitorConexion.Tick += async (_, _) => await _vm.Conexion.ActualizarAsync();
         _monitorConexion.Start();
 
+        // HU-12: ticketera de condor.json o, si no hay, vista previa en pantalla.
+        var ticketera = CargarTicketera();
+        IImpresoraTickets impresora = ticketera.Configurada
+            ? new ImpresoraWindows(ticketera.Nombre!, TimeSpan.FromSeconds(ticketera.EsperaSegundos))
+            : new ImpresoraVistaPrevia();
+        _vm.Impresion = new ImpresionViewModel(impresora, new EmpresaRepositorio(Conexiones), comprobantes, ticketera.Columnas);
+
         var ventana = new MainWindow { DataContext = _vm };
         MainWindow = ventana;
         ventana.Show();
@@ -61,6 +71,21 @@ public partial class App : Application
             await PrepararBaseDatosAsync();
         else
             _vm.Mensaje = $"Sin conexión con la PC principal ({_config}). Revise la red.";
+    }
+
+    /// <summary>Sección Ticketera de condor.json; si está mal escrita se avisa y se usa la vista previa.</summary>
+    private static ConfiguracionTicketera CargarTicketera()
+    {
+        try
+        {
+            return ConfiguracionTicketera.Cargar();
+        }
+        catch (InvalidDataException ex)
+        {
+            MessageBox.Show($"{ex.Message}\nLos tickets se mostrarán en pantalla hasta corregir condor.json.",
+                "Configuración de la ticketera", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return new ConfiguracionTicketera();
+        }
     }
 
     /// <summary>

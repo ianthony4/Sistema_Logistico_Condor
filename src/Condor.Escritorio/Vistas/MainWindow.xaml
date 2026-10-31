@@ -17,7 +17,7 @@
         <KeyBinding Key="F2" Command="{Binding ModuloPendienteCommand}" CommandParameter="Catálogo" />
         <KeyBinding Key="F3" Command="{Binding ModuloPendienteCommand}" CommandParameter="Clientes" />
         <KeyBinding Key="F4" Command="{Binding ModuloPendienteCommand}" CommandParameter="Compras" />
-        <KeyBinding Key="F5" Command="{Binding ModuloPendienteCommand}" CommandParameter="Historial" />
+        <KeyBinding Key="F11" Command="{Binding Impresion.ReimprimirCommand}" />
         <KeyBinding Key="F9" Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo" />
     </Window.InputBindings>
 
@@ -103,7 +103,7 @@
                     </DockPanel>
                 </Button>
                 <Button Style="{StaticResource BotonMenu}" Tag="&#xE823;" Focusable="False"
-                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Historial">
+                        Click="Historial_Click" ToolTip="Últimos comprobantes: reimprimir el que no salió.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F5" />
                         <TextBlock Text="Historial" />
@@ -412,24 +412,32 @@
                     </Border>
                 </Grid>
 
-                <!-- Columna derecha: cliente y resumen. Se desplaza si la pantalla es baja. -->
-                <ScrollViewer Grid.Row="2" Grid.Column="2" VerticalScrollBarVisibility="Auto"
+                <!-- Columna derecha: cliente y resumen arriba (se desplazan si la
+                     pantalla es baja); los avisos, Emitir y Cancelar quedan fijos abajo,
+                     siempre a la vista. -->
+                <Grid Grid.Row="2" Grid.Column="2" Margin="0,0,0,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Focusable="False"
-                              Margin="-10,0,-10,0" Padding="10,0,10,16">
+                              Margin="-10,0,-10,0" Padding="10,0,10,4">
                 <StackPanel>
 
                 <!-- Cliente (HU-03, T-23): un solo campo DNI o RUC; Enter busca. -->
-                <Border Style="{StaticResource Tarjeta}" Padding="24,18,20,20" Margin="0,0,0,16"
+                <Border Style="{StaticResource Tarjeta}" Padding="22,14,18,16" Margin="0,0,0,14"
                         DataContext="{Binding Cliente}"
                         Visibility="{Binding Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,12">
-                            <TextBlock Text="&#xE77B;" Style="{StaticResource Icono}" FontSize="18" Margin="0,0,12,0"
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock Text="&#xE77B;" Style="{StaticResource Icono}" FontSize="17" Margin="0,0,10,0"
                                        Foreground="{StaticResource Acento}" />
-                            <TextBlock Text="Cliente" Style="{StaticResource TituloSerif}" FontSize="24" />
+                            <TextBlock Text="Cliente" Style="{StaticResource TituloSerif}" FontSize="22" />
                         </DockPanel>
 
-                        <Label Content="_DNI o RUC" Target="{Binding ElementName=CampoDocumento}" FontSize="13" />
+                        <Label Content="_DNI o RUC" Target="{Binding ElementName=CampoDocumento}" FontSize="13" Padding="0,0,0,4" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -466,7 +474,7 @@
                                    Visibility="{Binding Error, Converter={StaticResource NuloAOculto}}" />
 
                         <!-- Cliente encontrado: nombre o razón social y dirección. -->
-                        <Border Margin="0,12,0,0" Padding="14,10,6,10" CornerRadius="5" Background="{StaticResource SuperficieAlterna}"
+                        <Border Margin="0,10,0,0" Padding="14,8,6,8" CornerRadius="5" Background="{StaticResource SuperficieAlterna}"
                                 Visibility="{Binding Seleccionado, Converter={StaticResource NuloAOculto}}">
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BotonQuitar}" VerticalAlignment="Top"
@@ -482,48 +490,56 @@
                             </DockPanel>
                         </Border>
 
-                        <TextBlock Margin="2,10,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextoSuave}"
+                        <TextBlock Margin="2,8,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextoSuave}"
                                    Text="Ese documento no está registrado. Pulse Nuevo cliente para registrarlo."
                                    Visibility="{Binding NoEncontrado, Converter={StaticResource BoolAVisible}}" />
 
-                        <!-- Sin cliente: la boleta sale sin DNI. -->
-                        <TextBlock Margin="2,10,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource TextoTenue}"
-                                   Text="Sin cliente: la boleta se emite sin DNI.">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
+                        <!-- Sin cliente: la boleta sale sin DNI; se puede registrar uno (HU-03, T-24). -->
+                        <DockPanel Margin="0,10,0,0">
+                            <DockPanel.Style>
+                                <Style TargetType="DockPanel">
                                     <Style.Triggers>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding HayCliente}" Value="False" />
-                                                <Condition Binding="{Binding NoEncontrado}" Value="False" />
-                                                <Condition Binding="{Binding TieneError}" Value="False" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </MultiDataTrigger>
+                                        <DataTrigger Binding="{Binding HayCliente}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-
-                        <!-- Registrar al cliente que no se encontró (HU-03, T-24). -->
-                        <Button HorizontalAlignment="Left" Margin="0,14,0,0" Height="38" Padding="12,0" FontSize="13"
-                                Click="NuevoCliente_Click" ToolTip="Registrar un cliente con su DNI o RUC (Alt+L).">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE710;" Style="{StaticResource Icono}" FontSize="11" Margin="0,0,8,0" />
-                                <AccessText Text="Nuevo c_liente" />
-                            </StackPanel>
-                        </Button>
+                            </DockPanel.Style>
+                            <Button DockPanel.Dock="Right" Height="34" Padding="10,0" FontSize="13" Margin="10,0,0,0"
+                                    Click="NuevoCliente_Click" ToolTip="Registrar un cliente con su DNI o RUC (Alt+L).">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE710;" Style="{StaticResource Icono}" FontSize="11" Margin="0,0,8,0" />
+                                    <AccessText Text="Nuevo c_liente" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextoTenue}" Text="Sin cliente: boleta sin DNI.">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding NoEncontrado}" Value="False" />
+                                                    <Condition Binding="{Binding TieneError}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DockPanel>
                     </StackPanel>
                 </Border>
 
                 <!-- Resumen. Los precios incluyen IGV (18 %). -->
-                <Border Style="{StaticResource Tarjeta}" Padding="26,22,20,26">
+                <Border Style="{StaticResource Tarjeta}" Padding="24,16,20,14">
                     <StackPanel>
-                        <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="30" Margin="0,0,0,18" />
+                        <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="26" Margin="0,0,0,12" />
 
                         <!-- Tipo de comprobante (HU-05, T-29). La factura llega con HU-06. -->
-                        <UniformGrid Columns="3" Margin="0,0,0,24" DataContext="{Binding Emision}"
+                        <UniformGrid Columns="3" Margin="0,0,0,16" DataContext="{Binding Emision}"
                                      Visibility="{Binding Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
                                          Content="Boleta" IsChecked="{Binding EsBoleta}" ToolTip="Boleta sin DNI (hasta S/ 700.00)." />
@@ -534,52 +550,76 @@
                                          ToolTip="La factura con RUC se habilita con HU-06 (Sprint 4)." />
                         </UniformGrid>
 
-                        <DockPanel Margin="0,0,6,24">
+                        <DockPanel Margin="0,0,6,12">
                             <TextBlock DockPanel.Dock="Right" Text="{Binding Venta.OpGravada, StringFormat='S/ {0:0.00}'}" FontSize="17" />
                             <TextBlock Text="Op. gravada" FontSize="17" />
                         </DockPanel>
-                        <DockPanel Margin="0,0,6,22">
+                        <DockPanel Margin="0,0,6,12">
                             <TextBlock DockPanel.Dock="Right" Text="{Binding Venta.Igv, StringFormat='S/ {0:0.00}'}" FontSize="17" />
                             <TextBlock Text="IGV (18 %)" FontSize="17" />
                         </DockPanel>
 
-                        <Border Height="1" Background="{StaticResource BordeFuerte}" Margin="0,0,6,34" />
+                        <Border Height="1" Background="{StaticResource BordeFuerte}" Margin="0,0,6,14" />
 
-                        <TextBlock Text="TOTAL" Style="{StaticResource TituloSerif}" FontSize="22" Foreground="{StaticResource Acento}" />
-                        <TextBlock Style="{StaticResource TituloSerif}" FontSize="62" Foreground="{StaticResource Acento}"
-                                   HorizontalAlignment="Right" Margin="0,-12,-4,24"
+                        <TextBlock Text="TOTAL" Style="{StaticResource TituloSerif}" FontSize="20" Foreground="{StaticResource Acento}" />
+                        <TextBlock Style="{StaticResource TituloSerif}" FontSize="52" Foreground="{StaticResource Acento}"
+                                   HorizontalAlignment="Right" Margin="0,-10,-4,0"
                                    Text="{Binding Venta.Total, StringFormat='S/ {0:0.00}'}" />
-
-                        <!-- Emite la boleta con el siguiente número de B001 (HU-05, T-29). -->
-                        <Button Style="{StaticResource BotonEmitir}" Height="68" FontSize="19" Margin="0,0,6,0"
-                                Command="{Binding Emision.EmitirCommand}" ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Guarda el comprobante en la base central e imprime el ticket (F10).">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE749;" Style="{StaticResource Icono}" FontSize="26" Margin="0,0,22,0" />
-                                <TextBlock Text="Emitir e imprimir" VerticalAlignment="Center" />
-                                <TextBlock Text=" (F10)" FontWeight="Normal" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-
-                        <!-- Por qué no se emitió: falta el DNI, sin conexión... -->
-                        <Border Margin="0,12,6,0" Padding="12,9" CornerRadius="5" Background="{StaticResource ErrorSuave}"
-                                Visibility="{Binding Emision.Error, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
-                            <TextBlock Text="{Binding Emision.Error}" Style="{StaticResource TextoError}" Margin="0" />
-                        </Border>
-
-                        <!-- Descarta la venta en curso; también con Esc. -->
-                        <Button Height="46" FontSize="15" Margin="0,12,6,0" Click="CancelarVenta_Click"
-                                ToolTip="Descartar la venta en curso (Esc).">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE711;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,10,0" />
-                                <TextBlock Text="Cancelar venta" VerticalAlignment="Center" />
-                                <TextBlock Text=" (Esc)" FontWeight="Normal" VerticalAlignment="Center" Foreground="{StaticResource TextoSuave}" />
-                            </StackPanel>
-                        </Button>
                     </StackPanel>
                 </Border>
                 </StackPanel>
                 </ScrollViewer>
+
+                <!-- Avisos y acciones: fijos bajo el resumen. -->
+                <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                    <!-- Por qué no se emitió: falta el DNI, sin conexión... -->
+                    <Border Margin="0,0,0,10" Padding="12,9" CornerRadius="5" Background="{StaticResource ErrorSuave}"
+                            Visibility="{Binding Emision.Error, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                        <TextBlock Text="{Binding Emision.Error}" Style="{StaticResource TextoError}" Margin="0" />
+                    </Border>
+
+                    <!-- El ticket no salió (HU-12, criterio 2): el comprobante ya está guardado. -->
+                    <Border Margin="0,0,0,10" Padding="12,10" CornerRadius="5" Background="{StaticResource ErrorSuave}"
+                            DataContext="{Binding Impresion}"
+                            Visibility="{Binding Error, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xE749;" Style="{StaticResource Icono}" FontSize="15"
+                                           Foreground="{StaticResource Error}" Margin="0,1,10,0" VerticalAlignment="Top" />
+                                <TextBlock Text="{Binding Error}" Style="{StaticResource TextoError}" Margin="0" />
+                            </DockPanel>
+                            <Button HorizontalAlignment="Left" Margin="0,10,0,0" Height="36" Padding="12,0"
+                                    Command="{Binding ReimprimirCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72C;" Style="{StaticResource Icono}" FontSize="12" Margin="0,0,8,0" />
+                                    <TextBlock Text="Reimprimir (F11)" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Emite la boleta con el siguiente número de B001 (HU-05, T-29). -->
+                    <Button Style="{StaticResource BotonEmitir}" Height="64" FontSize="19"
+                            Command="{Binding Emision.EmitirCommand}" ToolTipService.ShowOnDisabled="True"
+                            ToolTip="Guarda el comprobante en la base central e imprime el ticket (F10).">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE749;" Style="{StaticResource Icono}" FontSize="26" Margin="0,0,22,0" />
+                            <TextBlock Text="Emitir e imprimir" VerticalAlignment="Center" />
+                            <TextBlock Text=" (F10)" FontWeight="Normal" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Descarta la venta en curso; también con Esc. -->
+                    <Button Height="42" FontSize="15" Margin="0,10,0,0" Click="CancelarVenta_Click"
+                            ToolTip="Descartar la venta en curso (Esc).">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE711;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,10,0" />
+                            <TextBlock Text="Cancelar venta" VerticalAlignment="Center" />
+                            <TextBlock Text=" (Esc)" FontWeight="Normal" VerticalAlignment="Center" Foreground="{StaticResource TextoSuave}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                </Grid>
             </Grid>
         </DockPanel>
     </Grid>

@@ -11,6 +11,8 @@ public sealed class MainViewModel : ObservableObject
 {
     private readonly IProductoRepositorio? _productos;
     private readonly IClienteRepositorio? _clientes;
+    private readonly IComprobanteRepositorio? _comprobantes;
+    private ImpresionViewModel? _impresion;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -45,6 +47,7 @@ public sealed class MainViewModel : ObservableObject
             Cliente.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         }
 
+        _comprobantes = comprobantes;
         if (comprobantes is not null)
         {
             Emision = new EmisionViewModel(comprobantes, Venta, Cliente, () => Sesion);
@@ -108,6 +111,20 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Tipo de comprobante y Emitir e imprimir, F10 (HU-05).</summary>
     public EmisionViewModel? Emision { get; }
 
+    /// <summary>Ticketera: imprime al emitir y reimprime con F11 (HU-12). La asigna el arranque.</summary>
+    public ImpresionViewModel? Impresion
+    {
+        get => _impresion;
+        set
+        {
+            if (SetProperty(ref _impresion, value) && value is not null)
+                value.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        }
+    }
+
+    /// <summary>Última impresión lanzada al emitir; las pruebas la esperan con await.</summary>
+    public Task UltimaImpresion { get; private set; } = Task.CompletedTask;
+
     /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
 
@@ -168,16 +185,36 @@ public sealed class MainViewModel : ObservableObject
         Mensaje = $"Cliente registrado: {cliente.Nombre} ({cliente.Documento}).";
     }
 
+    /// <summary>Últimos comprobantes para reimprimir (F5, HU-12); null si no hay ticketera ni comprobantes.</summary>
+    public ComprobantesRecientesViewModel? CrearComprobantesRecientes() =>
+        _comprobantes is null || Impresion is null ? null : new ComprobantesRecientesViewModel(_comprobantes, Impresion);
+
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>
     public void AlCambiarCatalogo() => Buscador?.Refrescar();
 
-    /// <summary>Comprobante guardado: la pantalla queda lista para la siguiente venta.</summary>
+    /// <summary>
+    /// Comprobante guardado: la pantalla queda lista para la siguiente venta
+    /// mientras sale el ticket (HU-12).
+    /// </summary>
     private void AlEmitir(Comprobante comprobante)
     {
         Venta.Cancelar();
         Buscador?.Limpiar();
         Cliente?.Limpiar();
         Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida. Total S/ {comprobante.Total:0.00}.";
+        UltimaImpresion = ImprimirAsync(comprobante);
+    }
+
+    private async Task ImprimirAsync(Comprobante comprobante)
+    {
+        if (Impresion is null)
+            return;
+
+        var emitida = Mensaje;
+        Mensaje = $"{emitida} Imprimiendo…";
+        Mensaje = await Impresion.ImprimirAsync(comprobante)
+            ? $"{emitida} Impresa en {Impresion.Impresora}."
+            : $"{emitida} El ticket no salió: pulse F11 para reimprimir.";
     }
 
     private void AlElegirProducto(Producto producto)
