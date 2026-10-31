@@ -67,6 +67,21 @@ public partial class MainWindow : Window
         CampoProducto.Focus();
     }
 
+    // Historial (F5): últimos comprobantes para reimprimir el que no salió
+    // (HU-12, criterio 2). La búsqueda completa llega con HU-18.
+    private void Historial_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearComprobantesRecientes();
+        if (vm is null)
+        {
+            Vm?.ModuloPendienteCommand.Execute("Historial");
+            return;
+        }
+
+        new ComprobantesRecientesWindow(vm) { Owner = this }.ShowDialog();
+        CampoProducto.Focus();
+    }
+
     // Teclado del campo Producto: flecha abajo entra a la lista, Enter elige
     // la primera sugerencia y Esc cierra la lista. Así se vende sin mouse.
     private void CampoProducto_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -197,6 +212,11 @@ public partial class MainWindow : Window
         else if (tecla == Key.F10 && Vm?.Emision is { } emision)
         {
             _ = emision.EmitirCommand.EjecutarAsync();
+            e.Handled = true;
+        }
+        else if (tecla == Key.F5)
+        {
+            Historial_Click(sender, e);
             e.Handled = true;
         }
     }

@@ -38,10 +38,12 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepositorio
     public Task<IReadOnlyList<Comprobante>> ListarRecientesAsync(int limite = 30, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Comprobante>>(_comprobantes.OrderByDescending(c => c.Id).Take(limite).ToList());
 
+    /// <summary>Impresiones anotadas por comprobante. Como la base real, no toca el objeto en memoria.</summary>
+    public Dictionary<long, int> ImpresionesRegistradas { get; } = new();
+
     public Task RegistrarImpresionAsync(long id, CancellationToken ct = default)
     {
-        var comprobante = _comprobantes.First(c => c.Id == id);
-        comprobante.Impresiones++;
+        ImpresionesRegistradas[id] = ImpresionesRegistradas.GetValueOrDefault(id) + 1;
         return Task.CompletedTask;
     }
 }
