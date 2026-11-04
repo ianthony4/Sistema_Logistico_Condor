@@ -18,6 +18,52 @@ public interface IProductoRepositorio
 }
 
 /// <summary>
+/// Clientes de los comprobantes nominativos (HU-03). Lo implementa Condor.Datos.
+/// </summary>
+public interface IClienteRepositorio
+{
+    /// <summary>Cliente con ese DNI o RUC; null si aún no está registrado.</summary>
+    Task<Cliente?> BuscarPorDocumentoAsync(TipoDocumento tipo, string numero, CancellationToken ct = default);
+
+    /// <summary>
+    /// Registra un cliente nuevo y lo devuelve con su Id. Lanza
+    /// ClienteDuplicadoException si el documento ya estaba registrado.
+    /// </summary>
+    Task<Cliente> RegistrarAsync(Cliente cliente, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Datos de la ferretería para la cabecera de los comprobantes (HU-12).
+/// </summary>
+public interface IEmpresaRepositorio
+{
+    Task<Empresa> ObtenerAsync(CancellationToken ct = default);
+}
+
+/// <summary>
+/// Comprobantes emitidos (HU-05, HU-12). Lo implementa Condor.Datos.
+/// </summary>
+public interface IComprobanteRepositorio
+{
+    /// <summary>
+    /// Guarda el comprobante preparado (EmisionComprobante.Preparar) con el
+    /// siguiente número de su serie, todo en una sola transacción: si algo
+    /// falla no queda ni el comprobante ni el número usado. Devuelve el
+    /// comprobante con su Id, número y fecha.
+    /// </summary>
+    Task<Comprobante> EmitirAsync(Comprobante comprobante, CancellationToken ct = default);
+
+    /// <summary>Comprobante con su detalle y su cliente, para reimprimirlo; null si no existe.</summary>
+    Task<Comprobante?> ObtenerAsync(long id, CancellationToken ct = default);
+
+    /// <summary>Últimos comprobantes emitidos (sin detalle), del más reciente al más antiguo.</summary>
+    Task<IReadOnlyList<Comprobante>> ListarRecientesAsync(int limite = 30, CancellationToken ct = default);
+
+    /// <summary>Anota que el comprobante salió impreso (suma una impresión).</summary>
+    Task RegistrarImpresionAsync(long id, CancellationToken ct = default);
+}
+
+/// <summary>
 /// Numeración de comprobantes en la base de datos central (HU-16).
 /// </summary>
 public interface ISerieRepositorio

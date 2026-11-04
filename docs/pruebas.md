@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
-| `Dominio/`, `Presentacion/`, `Datos/` | Unitarias: no necesitan base de datos. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`). |
-| `Infraestructura/` | Datos de prueba, repositorio en memoria y conexión a la BD de pruebas. |
+| `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/` | Unitarias: no necesitan base de datos ni ticketera. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes), ticketera falsa y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
@@ -51,6 +51,27 @@ conexiones. Para repetirla con las PC reales:
    FROM comprobante c JOIN serie s ON s.id = c.serie_id
    WHERE s.codigo LIKE 'Y%' GROUP BY s.codigo;   -- count = max y min = 1
    ```
+
+## Emisión de boletas desde tres PC (T-30)
+
+`Aceptacion/HU05_EmitirBoletaTests` emite 25 boletas desde cada una de las
+tres PC simuladas, todas a la vez, sobre una serie de prueba (`Z001`,
+`Z002`...). Se comprueba que los números van del 1 al 75 sin repetidos ni
+huecos y que cada boleta tiene su detalle. Para repetirla con las PC reales:
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU05_EmitirBoleta"
+```
+
+Las pruebas de `CA1_` emiten sobre la serie real `B001` de la base de
+**pruebas**; nunca correrlas contra la base `condor` del local.
+
+## Ticketera (T-34)
+
+`Aceptacion/HU12_ImprimirTicketTests` usa una ticketera falsa
+(`Infraestructura/ImpresoraFalsa`) que puede simular estar apagada o sin
+papel. La prueba con la ticketera real se hace a mano siguiendo
+[ticketera.md](ticketera.md#prueba-manual-con-la-ticketera-real-definition-of-done-de-hu-12).
 
 ## Antes de mover una tarjeta a *Hecho*
 

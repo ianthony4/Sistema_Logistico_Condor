@@ -59,6 +59,7 @@ public sealed class LineaVentaViewModel : ObservableObject
         Item = Item,
         ProductoId = ProductoId,
         Descripcion = Descripcion,
+        Unidad = Unidad,
         Cantidad = Cantidad,
         PrecioUnitario = PrecioUnitario,
         Importe = Importe,

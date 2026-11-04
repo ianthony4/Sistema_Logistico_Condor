@@ -11,7 +11,7 @@ public enum TipoDocumento
 }
 
 /// <summary>
-/// Cliente de un comprobante nominativo (HU-03, Sprint 2).
+/// Cliente de un comprobante nominativo (HU-03).
 /// </summary>
 public sealed class Cliente
 {
@@ -25,4 +25,16 @@ public sealed class Cliente
     public string Nombre { get; set; } = string.Empty;
 
     public string? Direccion { get; set; }
+
+    /// <summary>Documento como se muestra e imprime: "DNI 45879632" o "RUC 20131312955".</summary>
+    public string Documento => $"{Etiqueta(TipoDocumento)} {NumeroDocumento}".Trim();
+
+    public static string Etiqueta(TipoDocumento tipo) => tipo switch
+    {
+        TipoDocumento.Dni => "DNI",
+        TipoDocumento.Ruc => "RUC",
+        _ => string.Empty,
+    };
+
+    public override string ToString() => $"{Nombre} ({Documento})";
 }

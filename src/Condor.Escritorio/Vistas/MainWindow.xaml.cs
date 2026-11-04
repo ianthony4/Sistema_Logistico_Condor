@@ -24,11 +24,14 @@ public partial class MainWindow : Window
         reloj.Tick += (_, _) => MostrarFechaHora();
         reloj.Start();
 
-        // Tras agregar una línea, el cursor vuelve al campo Producto (T-17).
+        // Tras agregar una línea o emitir, el cursor vuelve al campo Producto (T-17, T-29).
         DataContextChanged += (_, e) =>
         {
-            if (e.NewValue is MainViewModel vm)
-                vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
+            if (e.NewValue is not MainViewModel vm)
+                return;
+            vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
+            if (vm.Emision is not null)
+                vm.Emision.Emitido += _ => CampoProducto.Focus();
         };
     }
 
@@ -47,6 +50,35 @@ public partial class MainWindow : Window
         var dialogo = new NuevoProductoWindow(vm) { Owner = this };
         if (dialogo.ShowDialog() == true && vm.Guardado is not null)
             Vm!.ProductoRegistrado(vm.Guardado);
+        CampoProducto.Focus();
+    }
+
+    // Diálogo Nuevo cliente (HU-03, T-24): al guardar, el cliente queda
+    // elegido en la venta en curso y se vuelve al campo Producto.
+    private void NuevoCliente_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearNuevoCliente();
+        if (vm is null)
+            return;
+
+        var dialogo = new NuevoClienteWindow(vm) { Owner = this };
+        if (dialogo.ShowDialog() == true && vm.Guardado is not null)
+            Vm!.ClienteRegistrado(vm.Guardado);
+        CampoProducto.Focus();
+    }
+
+    // Historial (F5): últimos comprobantes para reimprimir el que no salió
+    // (HU-12, criterio 2). La búsqueda completa llega con HU-18.
+    private void Historial_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearComprobantesRecientes();
+        if (vm is null)
+        {
+            Vm?.ModuloPendienteCommand.Execute("Historial");
+            return;
+        }
+
+        new ComprobantesRecientesWindow(vm) { Owner = this }.ShowDialog();
         CampoProducto.Focus();
     }
 
@@ -167,27 +199,39 @@ public partial class MainWindow : Window
         CampoCantidad.SelectAll();
 
     // Esc fuera de la lista de sugerencias: descartar la venta en curso.
+    // F10: emitir e imprimir (HU-05). Windows trata F10 como tecla de sistema
+    // (activa el menú), por eso llega como Key.System y no sirve un KeyBinding.
     private void Ventana_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        var tecla = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (tecla == Key.Escape)
         {
             CancelarVenta_Click(sender, e);
+            e.Handled = true;
+        }
+        else if (tecla == Key.F10 && Vm?.Emision is { } emision)
+        {
+            _ = emision.EmitirCommand.EjecutarAsync();
+            e.Handled = true;
+        }
+        else if (tecla == Key.F5)
+        {
+            Historial_Click(sender, e);
             e.Handled = true;
         }
     }
 
     private void CancelarVenta_Click(object sender, RoutedEventArgs e)
     {
-        var venta = Vm?.Venta;
-        if (venta is null || venta.Detalle.Count == 0)
+        var vm = Vm;
+        if (vm is null || vm.Venta.Detalle.Count == 0)
             return;
 
         var respuesta = MessageBox.Show(this, "¿Descartar la venta en curso?", "Cancelar venta",
             MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
         if (respuesta == MessageBoxResult.Yes)
         {
-            venta.Cancelar();
-            Buscador?.Limpiar();
+            vm.CancelarVenta();
             CampoProducto.Focus();
         }
     }

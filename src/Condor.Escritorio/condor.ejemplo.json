@@ -6,5 +6,14 @@
   "BaseDatos": "condor",
   "Usuario": "condor_app",
   "Clave": "",
-  "TiempoEsperaSegundos": 5
+  "TiempoEsperaSegundos": 5,
+
+  // Ticketera térmica de 80 mm (HU-12). "Nombre" es el de la impresora en
+  // Configuración > Impresoras de Windows. Si se deja vacío, el ticket se
+  // muestra en pantalla en lugar de imprimirse.
+  "Ticketera": {
+    "Nombre": "",
+    "Columnas": 48,
+    "EsperaSegundos": 10
+  }
 }

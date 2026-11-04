@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Impresión en la ticketera térmica (HU-12): comandos ESC/POS y envío
+       directo al spooler de Windows. Sin WPF, para probarlo sin ventanas. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Condor.Impresion</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Condor.Dominio\Condor.Dominio.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "herramientas", "herramienta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Condor.CargaCatalogo", "herramientas\Condor.CargaCatalogo\Condor.CargaCatalogo.csproj", "{29562B2F-1B40-4CE1-AB06-D9E494E6D88D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Condor.Impresion", "src\Condor.Impresion\Condor.Impresion.csproj", "{5B0F2C3A-7E61-4D2B-9C4A-2F8E1D3B6A70}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{29562B2F-1B40-4CE1-AB06-D9E494E6D88D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29562B2F-1B40-4CE1-AB06-D9E494E6D88D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{29562B2F-1B40-4CE1-AB06-D9E494E6D88D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B0F2C3A-7E61-4D2B-9C4A-2F8E1D3B6A70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B0F2C3A-7E61-4D2B-9C4A-2F8E1D3B6A70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B0F2C3A-7E61-4D2B-9C4A-2F8E1D3B6A70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B0F2C3A-7E61-4D2B-9C4A-2F8E1D3B6A70}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E6D55770-C404-4EA5-8E53-F4FF97AB9714} = {33C6CC9C-C68B-4256-9A32-A807389903D1}
@@ -62,5 +68,6 @@ Global
 		{8332DBA9-98CB-41CC-AE8A-E4038B5148CD} = {33C6CC9C-C68B-4256-9A32-A807389903D1}
 		{84575805-DCE7-49A0-BB45-E84D089CA23C} = {33C6CC9C-C68B-4256-9A32-A807389903D1}
 		{29562B2F-1B40-4CE1-AB06-D9E494E6D88D} = {9591508E-095D-4D3A-9245-E18CDCEFBB5F}
+		{5B0F2C3A-7E61-4D2B-9C4A-2F8E1D3B6A70} = {33C6CC9C-C68B-4256-9A32-A807389903D1}
 	EndGlobalSection
 EndGlobal

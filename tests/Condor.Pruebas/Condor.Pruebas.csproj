@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Condor.Datos\Condor.Datos.csproj" />
+    <ProjectReference Include="..\..\src\Condor.Impresion\Condor.Impresion.csproj" />
     <ProjectReference Include="..\..\src\Condor.Presentacion\Condor.Presentacion.csproj" />
   </ItemGroup>
 
