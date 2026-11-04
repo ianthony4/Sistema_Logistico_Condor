@@ -1,5 +1,47 @@
 # Cambios
 
+## 0.2.0 – Sprint 2 (21 de octubre al 3 de noviembre de 2026)
+
+Objetivo del sprint: que el vendedor emita la boleta de la venta, con o sin
+DNI, y la entregue impresa en la ticketera sin pasos adicionales.
+
+### HU-03 · Registrar o buscar cliente por DNI/RUC
+- Validación del DNI (8 dígitos) y del RUC (11 dígitos, prefijo y dígito
+  verificador módulo 11) (T-21).
+- Repositorio de clientes en la base central, sin documentos repetidos (T-22).
+- Panel Cliente en Nueva venta: un solo campo DNI o RUC; Buscar completa el
+  nombre o la razón social y la dirección (T-23).
+- Diálogo Nuevo cliente: el cliente queda registrado y elegido en la venta (T-24).
+- Pruebas de aceptación (T-25).
+
+### HU-05 · Emitir boleta con o sin DNI
+- Migración V005: datos de la empresa, impresiones por comprobante y control
+  de que gravada + IGV = total (T-26).
+- Reglas de emisión: serie B001, boleta con DNI y DNI obligatorio en boletas
+  de más de S/ 700.00 (T-27).
+- Emisión en una sola transacción: correlativo, cabecera y detalle; si algo
+  falla no queda nada a medias ni números saltados (T-28).
+- Botón Emitir e imprimir (F10) con el tipo Boleta / Con DNI; sin conexión,
+  la venta se conserva para reintentar (T-29).
+- Pruebas de aceptación y emisión simultánea desde tres PC (T-30).
+
+### HU-12 · Imprimir en la ticketera térmica
+- Ticket de 80 mm con RUC, tipo y número, cliente, detalle, op. gravada,
+  IGV, total y el importe en letras (T-31).
+- Proyecto Condor.Impresion: comandos ESC/POS en la página de códigos 850 y
+  envío directo al spooler de Windows, con aviso si la ticketera está
+  apagada o sin papel (T-32).
+- Impresión al emitir, aviso si falla, reimpresión con F11 y desde
+  Historial (F5); vista previa en las PC sin ticketera (T-33).
+- Pruebas de aceptación y guía de instalación de la ticketera (T-34).
+
+### Transversales
+- Datos de prueba de clientes, repositorios en memoria y ticketera falsa (T-35).
+
+### Pendiente para el Sprint 3
+- Enviar las boletas a la SUNAT por el PSE y guardar el CDR (HU-07): hoy
+  quedan con estado PENDIENTE.
+
 ## 0.1.0 – Sprint 1 (7 al 20 de octubre de 2026)
 
 Objetivo del sprint: que las tres PC trabajen sobre una base de datos central
