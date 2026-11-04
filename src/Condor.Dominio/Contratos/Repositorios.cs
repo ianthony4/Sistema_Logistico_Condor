@@ -33,6 +33,27 @@ public interface IClienteRepositorio
 }
 
 /// <summary>
+/// Proveedores de la ferretería (HU-04). Lo implementa Condor.Datos.
+/// </summary>
+public interface IProveedorRepositorio
+{
+    /// <summary>
+    /// Registra un proveedor nuevo y lo devuelve con su Id. Lanza
+    /// ProveedorDuplicadoException si el RUC ya estaba registrado.
+    /// </summary>
+    Task<Proveedor> RegistrarAsync(Proveedor proveedor, CancellationToken ct = default);
+
+    /// <summary>Proveedor con ese RUC; null si aún no está registrado.</summary>
+    Task<Proveedor?> BuscarPorRucAsync(string ruc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Proveedores activos por RUC (inicio) o por parte de la razón social o del
+    /// nombre comercial; con el texto vacío, todos. Ordenados por razón social.
+    /// </summary>
+    Task<IReadOnlyList<Proveedor>> BuscarAsync(string? texto, int limite = 200, CancellationToken ct = default);
+}
+
+/// <summary>
 /// Datos de la ferretería para la cabecera de los comprobantes (HU-12).
 /// </summary>
 public interface IEmpresaRepositorio

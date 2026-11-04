@@ -75,10 +75,24 @@ erDiagram
         varchar direccion
         varchar telefono
     }
+    PROVEEDOR {
+        bigint id PK
+        char ruc UK "11 dígitos, el proveedor siempre factura"
+        varchar razon_social
+        varchar nombre_comercial
+        varchar direccion
+        varchar telefono
+        varchar correo
+        varchar contacto "persona que atiende los pedidos"
+        boolean activo
+        timestamptz creado_en
+    }
 ```
 
 `EMPRESA` no se relaciona con las demás tablas: guarda los datos de la
 ferretería que se imprimen en la cabecera de cada ticket (migración V005).
+`PROVEEDOR` (migración V006, HU-04) aún no se relaciona con las demás: las
+compras a proveedores (HU-11) se asociarán a ella.
 
 ## Decisiones
 
@@ -94,6 +108,7 @@ ferretería que se imprimen en la cabecera de cada ticket (migración V005).
 | `cliente` es único por `(tipo_documento, numero_documento)`. | Un DNI o RUC se registra una sola vez aunque dos PC lo intenten a la vez (HU-03). |
 | `comprobante` exige `op_gravada + igv = total`. | Un error de cálculo no puede llegar a un comprobante emitido (HU-05). |
 | `comprobante.impresiones` empieza en 0. | Si la ticketera falla, el comprobante queda registrado y se sabe que falta imprimirlo (HU-12). |
+| `proveedor` es único por `ruc` y lo exige con su prefijo (10, 15, 16, 17 o 20). | El proveedor emite facturas, así que siempre tiene RUC; dos PC no pueden registrarlo dos veces (HU-04). |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 
 ## Datos de la empresa
