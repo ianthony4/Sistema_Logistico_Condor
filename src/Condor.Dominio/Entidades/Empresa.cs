@@ -16,4 +16,19 @@ public sealed class Empresa
     public string Direccion { get; set; } = string.Empty;
 
     public string? Telefono { get; set; }
+
+    // Domicilio fiscal tal como lo pide el XML de la SUNAT (HU-07). Por
+    // defecto, el del local en Majes; se corrigen en la tabla empresa.
+
+    /// <summary>Código de ubigeo del INEI (6 dígitos): 040520 es Majes, Caylloma, Arequipa.</summary>
+    public string Ubigeo { get; set; } = "040520";
+
+    public string Departamento { get; set; } = "AREQUIPA";
+
+    public string Provincia { get; set; } = "CAYLLOMA";
+
+    public string Distrito { get; set; } = "MAJES";
+
+    /// <summary>Código del establecimiento anexo registrado en la SUNAT; 0000 es el domicilio fiscal.</summary>
+    public string CodigoEstablecimiento { get; set; } = "0000";
 }
