@@ -44,6 +44,36 @@ public static class DatosPrueba
 
     public static IReadOnlyList<Cliente> Clientes() => new[] { ClienteDni(), ClienteRuc() };
 
+    // Proveedores (HU-04): los que surten al local de cemento, fierro y pinturas.
+    public static Proveedor ProveedorAceros(string? ruc = null) => new()
+    {
+        Ruc = ruc ?? "20370146994",
+        RazonSocial = "Corporación Aceros Arequipa S.A.",
+        NombreComercial = "Aceros Arequipa",
+        Direccion = "Av. Antonio Miroquesada 425, Lima",
+        Telefono = "054 286314",
+        Correo = "ventas@acerosarequipa.com",
+        Contacto = "Carlos Huamán",
+    };
+
+    public static Proveedor ProveedorCemento(string? ruc = null) => new()
+    {
+        Ruc = ruc ?? "20100137390",
+        RazonSocial = "Yura S.A.",
+        Direccion = "Carretera a Yura km 26, Arequipa",
+        Telefono = "054 495060",
+    };
+
+    public static Proveedor ProveedorPinturas(string? ruc = null) => new()
+    {
+        Ruc = ruc ?? "20100079501",
+        RazonSocial = "Corporación Peruana de Productos Químicos S.A.",
+        NombreComercial = "CPPQ Pinturas",
+    };
+
+    public static IReadOnlyList<Proveedor> Proveedores() =>
+        new[] { ProveedorAceros(), ProveedorCemento(), ProveedorPinturas() };
+
     /// <summary>Datos de la ferretería como los deja la migración V005.</summary>
     public static Empresa Empresa() => new()
     {
