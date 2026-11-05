@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Facturación electrónica (HU-07): XML UBL 2.1, firma digital, envío a
+       la SUNAT (sendBill) y lectura del CDR. Sin WPF, para probarlo sin
+       ventanas. Basado en el modelo de Greenter / sunat-manager. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Condor.Sunat</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Condor.Dominio\Condor.Dominio.csproj" />
+  </ItemGroup>
+
+</Project>
