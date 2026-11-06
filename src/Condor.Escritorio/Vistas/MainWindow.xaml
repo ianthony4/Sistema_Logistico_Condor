@@ -110,7 +110,7 @@
                     </DockPanel>
                 </Button>
                 <Button Style="{StaticResource BotonMenu}" Tag="&#xE821;" Focusable="False"
-                        Click="Proveedores_Click" ToolTip="Registrar un proveedor con sus datos comerciales.">
+                        Click="Proveedores_Click" ToolTip="Proveedores: buscar por RUC o razón social y registrar uno nuevo.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F6" />
                         <TextBlock Text="Proveedores" />
