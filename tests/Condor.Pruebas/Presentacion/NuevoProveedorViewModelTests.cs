@@ -114,11 +114,4 @@ public class NuevoProveedorViewModelTests
         Assert.Equal(ruc, vm.Ruc);
         Assert.Equal(razon, vm.RazonSocial);
     }
-
-    [Fact]
-    public void La_pantalla_principal_crea_el_dialogo_solo_si_hay_repositorio()
-    {
-        Assert.Null(new MainViewModel().CrearNuevoProveedor());
-        Assert.NotNull(new MainViewModel(proveedores: new ProveedorRepositorioEnMemoria()).CrearNuevoProveedor());
-    }
 }

@@ -189,20 +189,16 @@ public sealed class MainViewModel : ObservableObject
         Mensaje = $"Cliente registrado: {cliente.Nombre} ({cliente.Documento}).";
     }
 
-    /// <summary>ViewModel del diálogo Nuevo proveedor (HU-04, T-38); null si no hay repositorio.</summary>
-    public NuevoProveedorViewModel? CrearNuevoProveedor()
+    /// <summary>Ventana Proveedores (F6, HU-04, T-39); null si no hay repositorio.</summary>
+    public ProveedoresViewModel? CrearProveedores()
     {
         if (_proveedores is null)
             return null;
 
-        var vm = new NuevoProveedorViewModel(_proveedores);
+        var vm = new ProveedoresViewModel(_proveedores);
         vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         return vm;
     }
-
-    /// <summary>Tras guardar en el diálogo: avisa que ya está en las tres PC.</summary>
-    public void ProveedorRegistrado(Proveedor proveedor) =>
-        Mensaje = $"Proveedor registrado: {proveedor.RazonSocial} (RUC {proveedor.Ruc}). Ya está disponible en las tres PC.";
 
     /// <summary>Últimos comprobantes para reimprimir (F5, HU-12); null si no hay ticketera ni comprobantes.</summary>
     public ComprobantesRecientesViewModel? CrearComprobantesRecientes() =>

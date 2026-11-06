@@ -67,20 +67,18 @@ public partial class MainWindow : Window
         CampoProducto.Focus();
     }
 
-    // Proveedores (F6, HU-04, T-38): diálogo Nuevo proveedor; al guardar
-    // queda disponible en las tres PC.
+    // Proveedores (F6, HU-04, T-39): lista con búsqueda por RUC o razón
+    // social y + Nuevo proveedor.
     private void Proveedores_Click(object sender, RoutedEventArgs e)
     {
-        var vm = Vm?.CrearNuevoProveedor();
+        var vm = Vm?.CrearProveedores();
         if (vm is null)
         {
             Vm?.ModuloPendienteCommand.Execute("Proveedores");
             return;
         }
 
-        var dialogo = new NuevoProveedorWindow(vm) { Owner = this };
-        if (dialogo.ShowDialog() == true && vm.Guardado is not null)
-            Vm!.ProveedorRegistrado(vm.Guardado);
+        new ProveedoresWindow(vm) { Owner = this }.ShowDialog();
         CampoProducto.Focus();
     }
 
