@@ -12,6 +12,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IProductoRepositorio? _productos;
     private readonly IClienteRepositorio? _clientes;
     private readonly IComprobanteRepositorio? _comprobantes;
+    private readonly IProveedorRepositorio? _proveedores;
     private ImpresionViewModel? _impresion;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
@@ -20,9 +21,12 @@ public sealed class MainViewModel : ObservableObject
     /// <param name="productos">Catálogo; si es null no se muestra el buscador.</param>
     /// <param name="clientes">Clientes; si es null no se muestra el panel Cliente (HU-03).</param>
     /// <param name="comprobantes">Comprobantes; si es null el botón Emitir no está disponible (HU-05).</param>
+    /// <param name="proveedores">Proveedores; si es null el módulo Proveedores no está disponible (HU-04).</param>
     public MainViewModel(IProductoRepositorio? productos = null, IClienteRepositorio? clientes = null,
-        IComprobanteRepositorio? comprobantes = null)
+        IComprobanteRepositorio? comprobantes = null, IProveedorRepositorio? proveedores = null)
     {
+        _proveedores = proveedores;
+
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
 
@@ -184,6 +188,21 @@ public sealed class MainViewModel : ObservableObject
         Cliente?.Seleccionar(cliente);
         Mensaje = $"Cliente registrado: {cliente.Nombre} ({cliente.Documento}).";
     }
+
+    /// <summary>ViewModel del diálogo Nuevo proveedor (HU-04, T-38); null si no hay repositorio.</summary>
+    public NuevoProveedorViewModel? CrearNuevoProveedor()
+    {
+        if (_proveedores is null)
+            return null;
+
+        var vm = new NuevoProveedorViewModel(_proveedores);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        return vm;
+    }
+
+    /// <summary>Tras guardar en el diálogo: avisa que ya está en las tres PC.</summary>
+    public void ProveedorRegistrado(Proveedor proveedor) =>
+        Mensaje = $"Proveedor registrado: {proveedor.RazonSocial} (RUC {proveedor.Ruc}). Ya está disponible en las tres PC.";
 
     /// <summary>Últimos comprobantes para reimprimir (F5, HU-12); null si no hay ticketera ni comprobantes.</summary>
     public ComprobantesRecientesViewModel? CrearComprobantesRecientes() =>

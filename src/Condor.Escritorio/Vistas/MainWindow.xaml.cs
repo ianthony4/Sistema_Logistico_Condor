@@ -67,6 +67,23 @@ public partial class MainWindow : Window
         CampoProducto.Focus();
     }
 
+    // Proveedores (F6, HU-04, T-38): diálogo Nuevo proveedor; al guardar
+    // queda disponible en las tres PC.
+    private void Proveedores_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearNuevoProveedor();
+        if (vm is null)
+        {
+            Vm?.ModuloPendienteCommand.Execute("Proveedores");
+            return;
+        }
+
+        var dialogo = new NuevoProveedorWindow(vm) { Owner = this };
+        if (dialogo.ShowDialog() == true && vm.Guardado is not null)
+            Vm!.ProveedorRegistrado(vm.Guardado);
+        CampoProducto.Focus();
+    }
+
     // Historial (F5): últimos comprobantes para reimprimir el que no salió
     // (HU-12, criterio 2). La búsqueda completa llega con HU-18.
     private void Historial_Click(object sender, RoutedEventArgs e)
@@ -217,6 +234,11 @@ public partial class MainWindow : Window
         else if (tecla == Key.F5)
         {
             Historial_Click(sender, e);
+            e.Handled = true;
+        }
+        else if (tecla == Key.F6)
+        {
+            Proveedores_Click(sender, e);
             e.Handled = true;
         }
     }
