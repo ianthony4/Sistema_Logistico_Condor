@@ -109,6 +109,13 @@
                         <TextBlock Text="Historial" />
                     </DockPanel>
                 </Button>
+                <Button Style="{StaticResource BotonMenu}" Tag="&#xE821;" Focusable="False"
+                        Click="Proveedores_Click" ToolTip="Registrar un proveedor con sus datos comerciales.">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F6" />
+                        <TextBlock Text="Proveedores" />
+                    </DockPanel>
+                </Button>
                 <Button Style="{StaticResource BotonMenu}" Tag="&#xE753;" Focusable="False"
                         Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo">
                     <DockPanel>

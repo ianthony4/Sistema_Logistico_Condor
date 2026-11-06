@@ -45,7 +45,8 @@ public partial class App : Application
         // HU-14: se abre directamente la pantalla Nueva venta con el perfil
         // MAESTRO, sin pedir usuario ni contraseña.
         var comprobantes = new ComprobanteRepositorio(Conexiones);
-        _vm = new MainViewModel(new ProductoRepositorio(Conexiones), new ClienteRepositorio(Conexiones), comprobantes);
+        _vm = new MainViewModel(new ProductoRepositorio(Conexiones), new ClienteRepositorio(Conexiones), comprobantes,
+            new ProveedorRepositorio(Conexiones));
         _vm.IniciarSesion(Sesion.Local(nombreEquipo));
 
         // T-06: cada 5 s se comprueba la PC principal; si no responde se
