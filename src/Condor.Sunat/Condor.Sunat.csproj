@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Firma XMLDSig del comprobante (T-42). -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Condor.Dominio\Condor.Dominio.csproj" />
   </ItemGroup>
 
