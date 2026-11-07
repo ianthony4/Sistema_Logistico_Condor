@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
-| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes), ticketera falsa y conexión a la BD de pruebas. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores), ticketera falsa y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
@@ -72,6 +72,21 @@ Las pruebas de `CA1_` emiten sobre la serie real `B001` de la base de
 (`Infraestructura/ImpresoraFalsa`) que puede simular estar apagada o sin
 papel. La prueba con la ticketera real se hace a mano siguiendo
 [ticketera.md](ticketera.md#prueba-manual-con-la-ticketera-real-definition-of-done-de-hu-12).
+
+## Proveedores (T-40)
+
+`Aceptacion/HU04_ProveedoresTests` registra un proveedor desde la PC-1 y lo
+busca por RUC desde la PC-2 y la PC-3; también intenta guardar el mismo RUC
+desde las tres PC a la vez y comprueba que queda un solo proveedor. Para
+repetirla con las PC reales:
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU04_Proveedores"
+```
+
+Prueba manual (Definition of Done de HU-04): en la PC-1 abrir **Proveedores
+(F6)**, pulsar **+ Nuevo proveedor** (Alt+N), registrar uno con RUC válido y,
+en la PC-2, buscarlo por su RUC o por parte de la razón social.
 
 ## Antes de mover una tarjeta a *Hecho*
 
