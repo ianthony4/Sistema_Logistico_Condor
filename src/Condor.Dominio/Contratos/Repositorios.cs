@@ -1,4 +1,5 @@
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Sunat;
 
 namespace Condor.Dominio.Contratos;
 
@@ -82,6 +83,25 @@ public interface IComprobanteRepositorio
 
     /// <summary>Anota que el comprobante salió impreso (suma una impresión).</summary>
     Task RegistrarImpresionAsync(long id, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Respuestas de la SUNAT a cada comprobante (HU-07). Lo implementa Condor.Datos.
+/// </summary>
+public interface IEnvioSunatRepositorio
+{
+    /// <summary>
+    /// Guarda lo que respondió la SUNAT: el estado del comprobante, el XML
+    /// firmado, el CDR y suma un intento. Un estado definitivo (aceptado,
+    /// observado o rechazado) ya no se cambia.
+    /// </summary>
+    Task RegistrarRespuestaAsync(long comprobanteId, RespuestaSunat respuesta, CancellationToken ct = default);
+
+    /// <summary>Anota un intento que no llegó a la SUNAT (sin internet); el comprobante sigue PENDIENTE.</summary>
+    Task RegistrarFallaAsync(long comprobanteId, string motivo, CancellationToken ct = default);
+
+    /// <summary>Boletas y facturas aún pendientes de envío, de la más antigua a la más reciente (HU-17).</summary>
+    Task<IReadOnlyList<long>> ListarPendientesAsync(int limite = 100, CancellationToken ct = default);
 }
 
 /// <summary>

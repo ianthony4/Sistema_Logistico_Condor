@@ -12,6 +12,7 @@ erDiagram
     SERIE ||--o{ COMPROBANTE : "numera"
     CLIENTE |o--o{ COMPROBANTE : "recibe"
     COMPROBANTE ||--|{ COMPROBANTE_DETALLE : "contiene"
+    COMPROBANTE ||--o| COMPROBANTE_SUNAT : "se envía"
     PRODUCTO ||--o{ COMPROBANTE_DETALLE : "se vende en"
 
     TERMINAL {
@@ -53,7 +54,7 @@ erDiagram
         numeric op_gravada
         numeric igv
         numeric total
-        varchar estado_sunat "PENDIENTE hasta el envío (HU-07)"
+        varchar estado_sunat "PENDIENTE, ACEPTADO, OBSERVADO o RECHAZADO (HU-07)"
         int impresiones "veces impreso en la ticketera (HU-12)"
         timestamptz impreso_en
     }
@@ -74,6 +75,25 @@ erDiagram
         varchar nombre_comercial
         varchar direccion
         varchar telefono
+        char ubigeo "INEI, 040520 = Majes (HU-07)"
+        varchar departamento
+        varchar provincia
+        varchar distrito
+        char codigo_establecimiento "0000 = domicilio fiscal"
+    }
+    COMPROBANTE_SUNAT {
+        bigint comprobante_id PK
+        varchar nombre_archivo "RUC-TIPO-SERIE-NÚMERO"
+        varchar hash "DigestValue de la firma"
+        text xml_firmado "UBL 2.1 tal como se envió"
+        bytea cdr_zip "constancia de recepción"
+        varchar codigo "0 aceptado, 2000-3999 rechazo, 4000+ observación"
+        varchar descripcion
+        text notas "observaciones del CDR, una por línea"
+        int intentos
+        timestamptz ultimo_intento
+        timestamptz respondido_en "null mientras no haya respuesta definitiva"
+        varchar ultimo_error "por qué quedó pendiente"
     }
     PROVEEDOR {
         bigint id PK
@@ -109,6 +129,9 @@ compras a proveedores (HU-11) se asociarán a ella.
 | `comprobante` exige `op_gravada + igv = total`. | Un error de cálculo no puede llegar a un comprobante emitido (HU-05). |
 | `comprobante.impresiones` empieza en 0. | Si la ticketera falla, el comprobante queda registrado y se sabe que falta imprimirlo (HU-12). |
 | `proveedor` es único por `ruc` y lo exige con su prefijo (10, 15, 16, 17 o 20). | El proveedor emite facturas, así que siempre tiene RUC; dos PC no pueden registrarlo dos veces (HU-04). |
+| El XML firmado y el CDR se guardan en `comprobante_sunat`, aparte de `comprobante`. | Pesan varios KB: el historial y la emisión no los leen; se conservan para auditoría (HU-07). |
+| Un estado SUNAT definitivo (aceptado, observado o rechazado) ya no cambia. | Si dos PC reenvían el mismo comprobante, la segunda respuesta no pisa la primera (V007). |
+| Índice parcial de comprobantes `PENDIENTE`. | El reenvío automático (HU-17) los encuentra rápido entre miles de aceptados. |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 
 ## Datos de la empresa
@@ -119,6 +142,17 @@ por los de la ficha RUC del local, desde `psql` en la PC principal:
 ```sql
 UPDATE empresa
 SET ruc = '20XXXXXXXXX', razon_social = '...', direccion = '...', telefono = '...'
+WHERE id = 1;
+```
+
+La migración V007 agrega el domicilio fiscal que va en el XML de la SUNAT
+(ubigeo 040520, Majes, Caylloma, Arequipa, establecimiento 0000). Si la ficha
+RUC dice otra cosa:
+
+```sql
+UPDATE empresa
+SET ubigeo = '040520', departamento = 'AREQUIPA', provincia = 'CAYLLOMA',
+    distrito = 'MAJES', codigo_establecimiento = '0000'
 WHERE id = 1;
 ```
 
