@@ -15,5 +15,19 @@
     "Nombre": "",
     "Columnas": 48,
     "EsperaSegundos": 10
+  },
+
+  // Envío a la SUNAT (HU-07). Solo en la PC que tiene internet; las demás
+  // pueden dejarlo vacío y sus comprobantes quedan pendientes de envío.
+  // Ambiente "Beta" (pruebas): usuario MODDATOS, clave moddatos y, si no se
+  // indica certificado, se firma con uno de prueba. En "Produccion" van el
+  // usuario secundario SOL de la ferretería y su certificado digital (.pfx).
+  "Sunat": {
+    "Ambiente": "Beta",
+    "UsuarioSol": "MODDATOS",
+    "ClaveSol": "moddatos",
+    "Certificado": "",
+    "ClaveCertificado": "",
+    "EsperaSegundos": 30
   }
 }
