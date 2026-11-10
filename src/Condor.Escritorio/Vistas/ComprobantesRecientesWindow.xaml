@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Últimos comprobantes"
-        Width="1040" Height="600" MinWidth="860" MinHeight="420"
+        Width="1180" Height="600" MinWidth="960" MinHeight="420"
         ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
         Background="{StaticResource Superficie}"
         FocusManager.FocusedElement="{Binding ElementName=Lista}">
@@ -22,7 +22,7 @@
             </Border>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="Últimos comprobantes" FontSize="20" FontWeight="Bold" />
-                <TextBlock Text="Elija el comprobante y pulse Reimprimir (F11). Los que no salieron dicen «Sin imprimir»."
+                <TextBlock Text="Elija el comprobante y pulse Reimprimir (F11). Los que no salieron dicen «Sin imprimir». La columna SUNAT dice si ya fue aceptado."
                            Foreground="{StaticResource TextoSuave}" FontSize="13" />
             </StackPanel>
         </DockPanel>
@@ -83,6 +83,42 @@
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Impresiones}" Value="1">
                                                     <Setter Property="Text" Value="Sí" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <!-- Estado ante la SUNAT (HU-07, T-48); el motivo sale al pasar el mouse. -->
+                    <DataGridTemplateColumn Header="SUNAT" Width="160">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock VerticalAlignment="Center"
+                                           ToolTip="{Binding MensajeSunat, TargetNullValue='Aún no se envió a la SUNAT.'}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <!-- El texto va en el estilo: si se pusiera en el TextBlock, los triggers no podrían cambiarlo. -->
+                                            <Setter Property="Text" Value="{Binding EstadoSunat}" />
+                                            <Setter Property="Foreground" Value="{StaticResource Acento}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding EstadoSunat}" Value="ACEPTADO">
+                                                    <Setter Property="Text" Value="Aceptada" />
+                                                    <Setter Property="Foreground" Value="{StaticResource Exito}" />
+                                                    <Setter Property="FontWeight" Value="Normal" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding EstadoSunat}" Value="OBSERVADO">
+                                                    <Setter Property="Text" Value="Aceptada con obs." />
+                                                    <Setter Property="Foreground" Value="{StaticResource Exito}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding EstadoSunat}" Value="RECHAZADO">
+                                                    <Setter Property="Text" Value="Rechazada" />
+                                                    <Setter Property="Foreground" Value="{StaticResource Error}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding EstadoSunat}" Value="PENDIENTE">
+                                                    <Setter Property="Text" Value="Pendiente" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
