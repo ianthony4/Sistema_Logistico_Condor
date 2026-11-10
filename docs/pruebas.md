@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
-| `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
-| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores), ticketera falsa y conexión a la BD de pruebas. |
+| `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos), ticketera falsa, SUNAT falsa y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
@@ -87,6 +87,24 @@ dotnet test --filter "FullyQualifiedName~HU04_Proveedores"
 Prueba manual (Definition of Done de HU-04): en la PC-1 abrir **Proveedores
 (F6)**, pulsar **+ Nuevo proveedor** (Alt+N), registrar uno con RUC válido y,
 en la PC-2, buscarlo por su RUC o por parte de la razón social.
+
+## SUNAT (T-49)
+
+`Aceptacion/HU07_EnviarSunatTests` tiene dos clases de pruebas:
+
+- `[FactConBD]`: usan la SUNAT falsa (`Infraestructura/EnvioSunatFalso`), que
+  acepta, rechaza, simula la falta de internet o tarda lo que se le pida. Así
+  se comprueba que el ticket sale igual y que la venta siguiente no espera.
+- `[FactSunatBeta]`: envían de verdad al **ambiente beta** de la SUNAT (usuario
+  `MODDATOS`) una boleta sin DNI, una con DNI y una factura, y esperan el CDR
+  con código 0. Se omiten si no se define la variable:
+
+```powershell
+$env:CONDOR_SUNAT_BETA = "1"
+dotnet test --filter "FullyQualifiedName~HU07"
+```
+
+La configuración y la prueba manual están en [sunat.md](sunat.md).
 
 ## Antes de mover una tarjeta a *Hecho*
 
