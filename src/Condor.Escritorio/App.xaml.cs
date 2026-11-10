@@ -9,6 +9,7 @@ using Condor.Escritorio.Impresion;
 using Condor.Escritorio.Vistas;
 using Condor.Impresion;
 using Condor.Presentacion.ViewModels;
+using Condor.Sunat;
 
 namespace Condor.Escritorio;
 
@@ -64,6 +65,12 @@ public partial class App : Application
             : new ImpresoraVistaPrevia();
         _vm.Impresion = new ImpresionViewModel(impresora, new EmpresaRepositorio(Conexiones), comprobantes, ticketera.Columnas);
 
+        // HU-07: cada boleta se envía a la SUNAT al emitirla. Sin la sección
+        // Sunat en condor.json se emite igual y queda pendiente de envío.
+        var sunat = CargarSunat();
+        _vm.EnvioSunat = new EnvioSunatViewModel(sunat.Configurada ? new ServicioEnvioSunat(sunat) : null,
+            new EmpresaRepositorio(Conexiones), new EnvioSunatRepositorio(Conexiones));
+
         var ventana = new MainWindow { DataContext = _vm };
         MainWindow = ventana;
         ventana.Show();
@@ -86,6 +93,21 @@ public partial class App : Application
             MessageBox.Show($"{ex.Message}\nLos tickets se mostrarán en pantalla hasta corregir condor.json.",
                 "Configuración de la ticketera", MessageBoxButton.OK, MessageBoxImage.Warning);
             return new ConfiguracionTicketera();
+        }
+    }
+
+    /// <summary>Sección Sunat de condor.json; si está mal escrita se avisa y los comprobantes quedan pendientes.</summary>
+    private static ConfiguracionSunat CargarSunat()
+    {
+        try
+        {
+            return ConfiguracionSunat.Cargar();
+        }
+        catch (InvalidDataException ex)
+        {
+            MessageBox.Show($"{ex.Message}\nLos comprobantes quedarán pendientes de envío a la SUNAT hasta corregir condor.json.",
+                "Configuración de la SUNAT", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return new ConfiguracionSunat();
         }
     }
 

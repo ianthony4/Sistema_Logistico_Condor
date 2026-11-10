@@ -14,6 +14,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IComprobanteRepositorio? _comprobantes;
     private readonly IProveedorRepositorio? _proveedores;
     private ImpresionViewModel? _impresion;
+    private EnvioSunatViewModel? _envioSunat;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -126,8 +127,22 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Envío a la SUNAT al emitir (HU-07). Lo asigna el arranque.</summary>
+    public EnvioSunatViewModel? EnvioSunat
+    {
+        get => _envioSunat;
+        set
+        {
+            if (SetProperty(ref _envioSunat, value) && value is not null)
+                value.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        }
+    }
+
     /// <summary>Última impresión lanzada al emitir; las pruebas la esperan con await.</summary>
     public Task UltimaImpresion { get; private set; } = Task.CompletedTask;
+
+    /// <summary>Último envío a la SUNAT lanzado al emitir; las pruebas lo esperan con await.</summary>
+    public Task UltimoEnvioSunat { get; private set; } = Task.CompletedTask;
 
     /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
@@ -209,7 +224,8 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>
     /// Comprobante guardado: la pantalla queda lista para la siguiente venta
-    /// mientras sale el ticket (HU-12).
+    /// mientras sale el ticket (HU-12) y se envía a la SUNAT (HU-07). Las dos
+    /// cosas van en paralelo: sin internet el ticket sale igual.
     /// </summary>
     private void AlEmitir(Comprobante comprobante)
     {
@@ -218,6 +234,8 @@ public sealed class MainViewModel : ObservableObject
         Cliente?.Limpiar();
         Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida. Total S/ {comprobante.Total:0.00}.";
         UltimaImpresion = ImprimirAsync(comprobante);
+        if (EnvioSunat is not null)
+            UltimoEnvioSunat = EnvioSunat.EnviarAsync(comprobante);
     }
 
     private async Task ImprimirAsync(Comprobante comprobante)
