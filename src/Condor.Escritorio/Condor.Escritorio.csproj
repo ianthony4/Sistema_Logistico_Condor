@@ -6,7 +6,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>Condor.Escritorio</RootNamespace>
     <AssemblyName>CondorVentas</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

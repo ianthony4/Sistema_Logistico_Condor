@@ -1,5 +1,45 @@
 # Cambios
 
+## 0.3.0 – Sprint 3 (4 al 10 de noviembre de 2026)
+
+Objetivo del sprint: que cada boleta emitida llegue sola a la SUNAT y quede
+guardada su constancia (CDR), sin frenar la venta cuando falla el internet;
+y tener registrados a los proveedores para las compras. Sprint de una semana.
+
+### HU-04 · Registrar proveedores
+- Entidad Proveedor y sus reglas: RUC válido, razón social, teléfono y correo
+  (T-36).
+- Migración V006 y repositorio de proveedores, un solo proveedor por RUC aunque
+  dos PC lo registren a la vez; búsqueda por RUC o razón social sin tildes
+  (T-37).
+- Diálogo Nuevo proveedor con los datos comerciales (T-38).
+- Ventana Proveedores (F6) con búsqueda y + Nuevo proveedor (T-39).
+- Pruebas de aceptación (T-40).
+
+### HU-07 · Enviar a SUNAT y guardar el CDR
+- Proyecto Condor.Sunat, basado en Greenter / sunat-manager: XML UBL 2.1 de la
+  boleta y la factura (T-41), firma digital XMLDSig con el certificado (T-42),
+  lectura del CDR y estados aceptado, observado, rechazado o pendiente (T-43)
+  y envío del ZIP por sendBill con la clave SOL (T-44).
+- Migración V007: domicilio fiscal de la empresa y tabla comprobante_sunat con
+  el XML firmado, el CDR y los intentos (T-45).
+- Sección Sunat de condor.json: ambiente beta o producción, usuario y clave
+  SOL y certificado (T-46).
+- Envío al emitir, en paralelo con la impresión: el resultado se ve bajo
+  Emitir; sin internet el ticket sale igual y queda pendiente (T-47).
+- Columna SUNAT en el Historial (F5) con el motivo de los pendientes y
+  rechazados (T-48).
+- Pruebas de aceptación con la SUNAT simulada y contra el ambiente beta real,
+  y guía docs/sunat.md (T-49).
+
+### Transversales
+- Datos de prueba de proveedores, SUNAT falsa y repositorios en memoria (T-50).
+
+### Pendiente para el Sprint 4
+- Reenvío automático de los comprobantes pendientes (HU-17).
+- Factura con RUC desde la pantalla de venta (HU-06); el XML ya la soporta.
+- Pasar a producción con el certificado digital y el usuario SOL de la ferretería.
+
 ## 0.2.0 – Sprint 2 (21 de octubre al 3 de noviembre de 2026)
 
 Objetivo del sprint: que el vendedor emita la boleta de la venta, con o sin
