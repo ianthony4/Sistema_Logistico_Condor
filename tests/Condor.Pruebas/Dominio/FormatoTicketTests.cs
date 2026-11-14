@@ -121,6 +121,62 @@ public class FormatoTicketTests
         Assert.DoesNotContain("CLIENTES VARIOS", texto);
     }
 
+    [Fact]
+    public void La_factura_lleva_la_razon_social_el_RUC_la_direccion_y_la_forma_de_pago()
+    {
+        var cliente = DatosPrueba.ClienteRuc();
+        cliente.Id = 7;
+
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Factura(cliente)).ComoTexto();
+
+        Assert.Contains("FACTURA ELECTRÓNICA", texto);
+        Assert.Contains("F001-00000003", texto);
+        Assert.Contains("Razón social: Constructora Valle de Majes S.A.C.", texto);
+        Assert.Contains("RUC: 20131312955", texto);
+        Assert.Contains("Dirección: Av. Principal 450, Majes", texto);
+        Assert.Contains("Forma de pago: Contado", texto);
+        Assert.Contains("TOTAL        S/      182.90", texto);
+        Assert.Contains("Representación impresa de la Factura", texto);
+        Assert.DoesNotContain("Cliente:", texto);
+    }
+
+    [Fact]
+    public void La_boleta_no_lleva_forma_de_pago()
+    {
+        var cliente = DatosPrueba.ClienteDni();
+        cliente.Id = 5;
+
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Boleta(cliente)).ComoTexto();
+
+        Assert.DoesNotContain("Forma de pago", texto);
+        Assert.DoesNotContain("Razón social:", texto);
+    }
+
+    [Theory]
+    [InlineData(32)]
+    [InlineData(48)]
+    public void La_razon_social_larga_de_la_factura_no_pasa_del_ancho(int columnas)
+    {
+        var cliente = DatosPrueba.ClienteRuc();
+        cliente.Id = 7;
+        cliente.Nombre = "Consorcio Constructor de Obras Viales y Saneamiento del Valle de Majes S.A.C.";
+
+        var ticket = FormatoTicket.Generar(DatosPrueba.Empresa(), Factura(cliente), columnas);
+
+        Assert.All(ticket.Lineas, l => Assert.True(l.Texto.Length <= columnas, $"{l.Texto.Length} > {columnas}: {l.Texto}"));
+        Assert.Contains(ticket.Lineas, l => l.Texto.StartsWith("Razón social: Consorcio"));
+    }
+
+    private static Comprobante Factura(Cliente cliente)
+    {
+        var boleta = Boleta();
+        var factura = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Factura, boleta.Detalle, cliente));
+        factura.Numero = 3;
+        factura.Fecha = boleta.Fecha;
+        factura.TerminalNombre = boleta.TerminalNombre;
+        return factura;
+    }
+
     [Theory]
     [InlineData(32)]
     [InlineData(42)]
