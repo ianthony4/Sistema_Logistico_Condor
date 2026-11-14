@@ -7,7 +7,8 @@ namespace Condor.Dominio.Impresion;
 /// <summary>
 /// Arma el ticket de 80 mm de un comprobante (HU-12, T-31): RUC y datos de la
 /// ferretería, tipo y número, fecha, cliente, detalle, op. gravada, IGV,
-/// total y el importe en letras.
+/// total y el importe en letras. La factura lleva además la razón social, el
+/// RUC y la dirección del cliente y la forma de pago (HU-06, T-52).
 /// </summary>
 public static class FormatoTicket
 {
@@ -46,7 +47,17 @@ public static class FormatoTicket
         // separador de Windows (en algunas PC es un espacio).
         var fechaTexto = fecha.ToString("dd/MM/yyyy HH:mm", Numeros);
         t.Lineas.Add(new(DosColumnas($"Fecha: {fechaTexto}", $"Caja: {comprobante.TerminalNombre ?? "-"}", n)));
-        if (comprobante.Cliente is { } cliente)
+        if (comprobante.TipoComprobante == TipoComprobante.Factura && comprobante.Cliente is { } empresaCliente)
+        {
+            // HU-06: la factura identifica a la empresa que compra y dice
+            // cómo se pagó (el XML la envía al contado, T-41).
+            Agregar(t, $"Razón social: {empresaCliente.Nombre}");
+            t.Lineas.Add(new($"RUC: {empresaCliente.NumeroDocumento}", Negrita: true));
+            if (!string.IsNullOrWhiteSpace(empresaCliente.Direccion))
+                Agregar(t, $"Dirección: {empresaCliente.Direccion}");
+            t.Lineas.Add(new("Forma de pago: Contado"));
+        }
+        else if (comprobante.Cliente is { } cliente)
         {
             Agregar(t, $"Cliente: {cliente.Nombre}");
             t.Lineas.Add(new($"{Cliente.Etiqueta(cliente.TipoDocumento)}: {cliente.NumeroDocumento}"));
