@@ -131,6 +131,7 @@ compras a proveedores (HU-11) se asociarán a ella.
 | `proveedor` es único por `ruc` y lo exige con su prefijo (10, 15, 16, 17 o 20). | El proveedor emite facturas, así que siempre tiene RUC; dos PC no pueden registrarlo dos veces (HU-04). |
 | El XML firmado y el CDR se guardan en `comprobante_sunat`, aparte de `comprobante`. | Pesan varios KB: el historial y la emisión no los leen; se conservan para auditoría (HU-07). |
 | Un estado SUNAT definitivo (aceptado, observado o rechazado) ya no cambia. | Si dos PC reenvían el mismo comprobante, la segunda respuesta no pisa la primera (V007). |
+| Una factura (serie de tipo `01`) solo se guarda con un cliente de RUC (trigger `ck_factura_con_ruc`, V008). | La SUNAT rechaza la factura sin RUC; la base central lo impide aunque una PC tenga una versión vieja del programa (HU-06). |
 | Índice parcial de comprobantes `PENDIENTE`. | El reenvío automático (HU-17) los encuentra rápido entre miles de aceptados. |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 

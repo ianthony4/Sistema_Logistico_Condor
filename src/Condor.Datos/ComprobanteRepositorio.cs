@@ -109,6 +109,12 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
             comprobante.Id = 0;
             throw new SinConexionException(ex);
         }
+        catch (PostgresException ex) when (ex.ConstraintName == "ck_factura_con_ruc")
+        {
+            // V008: la base central no acepta una factura sin cliente con RUC (HU-06).
+            comprobante.Id = 0;
+            throw new InvalidOperationException("La factura requiere un cliente con RUC registrado: búsquelo por su RUC antes de emitir.", ex);
+        }
         catch
         {
             comprobante.Id = 0;

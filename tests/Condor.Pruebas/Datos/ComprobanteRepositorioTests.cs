@@ -79,6 +79,53 @@ public class ComprobanteRepositorioTests
     }
 
     [FactConBD]
+    public async Task La_factura_con_RUC_lleva_su_propia_numeracion_y_su_cliente()
+    {
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var serieFactura = await CrearSerieAsync(TipoComprobante.Factura, 'X');
+        var cliente = await new ClienteRepositorio(_bd.Conexiones).RegistrarAsync(DatosPrueba.ClienteRuc(DatosPrueba.RucNuevo()));
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+
+        await repo.EmitirAsync(await BoletaAsync(serieBoleta));
+        await repo.EmitirAsync(await BoletaAsync(serieBoleta));
+        var factura = await repo.EmitirAsync(await FacturaAsync(serieFactura, cliente));
+
+        Assert.Equal(1, factura.Numero);
+        var guardada = await repo.ObtenerAsync(factura.Id);
+        Assert.Equal(TipoComprobante.Factura, guardada!.TipoComprobante);
+        Assert.Equal("Factura electrónica", guardada.NombreTipo);
+        Assert.Equal(TipoDocumento.Ruc, guardada.Cliente!.TipoDocumento);
+        Assert.Equal(cliente.NumeroDocumento, guardada.Cliente.NumeroDocumento);
+    }
+
+    [FactConBD]
+    public async Task La_base_central_rechaza_la_factura_sin_cliente_con_RUC_y_no_gasta_el_numero()
+    {
+        var serieFactura = await CrearSerieAsync(TipoComprobante.Factura, 'X');
+        var conDni = await new ClienteRepositorio(_bd.Conexiones).RegistrarAsync(DatosPrueba.ClienteDni(DatosPrueba.DniNuevo()));
+        var conRuc = await new ClienteRepositorio(_bd.Conexiones).RegistrarAsync(DatosPrueba.ClienteRuc(DatosPrueba.RucNuevo()));
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+
+        // Una PC con una versión vieja del programa podría mandar una factura
+        // con DNI o sin cliente: la base central no la deja pasar (V008).
+        var conDniFactura = await FacturaAsync(serieFactura, conRuc);
+        conDniFactura.Cliente = conDni;
+        conDniFactura.ClienteId = conDni.Id;
+        var sinCliente = await FacturaAsync(serieFactura, conRuc);
+        sinCliente.Cliente = null;
+        sinCliente.ClienteId = null;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => repo.EmitirAsync(conDniFactura));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repo.EmitirAsync(sinCliente));
+        var valida = await repo.EmitirAsync(await FacturaAsync(serieFactura, conRuc));
+
+        Assert.Contains("RUC", ex.Message);
+        Assert.Equal(0, conDniFactura.Id);
+        Assert.Equal(1, valida.Numero);
+        Assert.Equal(1L, await ContarAsync(serieFactura));
+    }
+
+    [FactConBD]
     public async Task Registrar_impresion_suma_una_y_aparece_en_los_recientes()
     {
         var serie = await CrearSerieBoletaAsync();
@@ -114,19 +161,34 @@ public class ComprobanteRepositorioTests
         return boleta;
     }
 
+    /// <summary>Factura preparada por el dominio para el cliente con RUC (HU-06).</summary>
+    private async Task<Comprobante> FacturaAsync(string serie, Cliente cliente)
+    {
+        var boleta = await BoletaAsync(serie);
+        var factura = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Factura, boleta.Detalle, cliente));
+        factura.SerieCodigo = serie;
+        factura.TerminalId = boleta.TerminalId;
+        return factura;
+    }
+
     /// <summary>Serie de boletas de prueba (W + 3 dígitos) para no tocar la B001.</summary>
-    private async Task<string> CrearSerieBoletaAsync()
+    private Task<string> CrearSerieBoletaAsync() => CrearSerieAsync(TipoComprobante.Boleta, 'W');
+
+    /// <summary>Serie de prueba de un tipo (letra + 3 dígitos) para no tocar la B001 ni la F001.</summary>
+    private async Task<string> CrearSerieAsync(string tipo, char letra)
     {
         await using var conexion = await _bd.Conexiones.AbrirAsync();
         await using var cmd = new NpgsqlCommand(
             """
             INSERT INTO serie (tipo_comprobante, codigo)
-            SELECT '03', 'W' || lpad(n::text, 3, '0')
+            SELECT @tipo, @letra || lpad(n::text, 3, '0')
             FROM generate_series(1, 999) AS n
-            WHERE NOT EXISTS (SELECT 1 FROM serie WHERE codigo = 'W' || lpad(n::text, 3, '0'))
+            WHERE NOT EXISTS (SELECT 1 FROM serie WHERE codigo = @letra || lpad(n::text, 3, '0'))
             LIMIT 1
             RETURNING codigo
             """, conexion);
+        cmd.Parameters.AddWithValue("tipo", tipo);
+        cmd.Parameters.AddWithValue("letra", letra.ToString());
         return (string)(await cmd.ExecuteScalarAsync())!;
     }
 
