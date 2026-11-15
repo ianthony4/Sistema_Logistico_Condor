@@ -94,6 +94,8 @@ erDiagram
         timestamptz ultimo_intento
         timestamptz respondido_en "null mientras no haya respuesta definitiva"
         varchar ultimo_error "por qué quedó pendiente"
+        timestamptz reservado_hasta "PC que lo está reenviando, hasta cuándo (V009)"
+        varchar reservado_por
     }
     PROVEEDOR {
         bigint id PK
@@ -132,6 +134,7 @@ compras a proveedores (HU-11) se asociarán a ella.
 | El XML firmado y el CDR se guardan en `comprobante_sunat`, aparte de `comprobante`. | Pesan varios KB: el historial y la emisión no los leen; se conservan para auditoría (HU-07). |
 | Un estado SUNAT definitivo (aceptado, observado o rechazado) ya no cambia. | Si dos PC reenvían el mismo comprobante, la segunda respuesta no pisa la primera (V007). |
 | Una factura (serie de tipo `01`) solo se guarda con un cliente de RUC (trigger `ck_factura_con_ruc`, V008). | La SUNAT rechaza la factura sin RUC; la base central lo impide aunque una PC tenga una versión vieja del programa (HU-06). |
+| Cada PC aparta los pendientes antes de reenviarlos (`comprobante_sunat.reservado_hasta`, V009) con `FOR UPDATE SKIP LOCKED`. | Si dos PC tienen la SUNAT configurada, un comprobante no se envía dos veces a la vez; si la PC se apaga, la reserva vence a los 5 minutos y otra lo retoma (HU-17). |
 | Índice parcial de comprobantes `PENDIENTE`. | El reenvío automático (HU-17) los encuentra rápido entre miles de aceptados. |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 

@@ -64,6 +64,21 @@ public sealed class RespuestaSunat
 }
 
 /// <summary>
+/// Comprobantes que aún no llegan a la SUNAT (HU-17): cuántos son y la fecha
+/// del más antiguo. La SUNAT da 3 días calendario para enviarlos.
+/// </summary>
+public sealed record ResumenPendientes(int Cantidad, DateTimeOffset? MasAntiguo)
+{
+    public static ResumenPendientes Ninguno { get; } = new(0, null);
+
+    /// <summary>Días que da la SUNAT para enviar una boleta o factura emitida.</summary>
+    public const int DiasPlazoSunat = 3;
+
+    /// <summary>True si el más antiguo ya lleva más de 2 días: queda poco del plazo.</summary>
+    public bool PorVencer(DateTimeOffset ahora) => MasAntiguo is { } fecha && ahora - fecha > TimeSpan.FromDays(DiasPlazoSunat - 1);
+}
+
+/// <summary>
 /// Envía un comprobante emitido a la SUNAT y devuelve su CDR (HU-07). Lo
 /// implementa Condor.Sunat: arma el XML UBL 2.1, lo firma, lo comprime y lo
 /// manda al servicio sendBill.
