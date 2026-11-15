@@ -120,6 +120,21 @@ public interface IEnvioSunatRepositorio
 }
 
 /// <summary>
+/// Respaldos manuales de la base de datos (HU-15). Lo implementa Condor.Datos.
+/// </summary>
+public interface IRespaldoRepositorio
+{
+    /// <summary>Anota un respaldo ya generado y lo devuelve con su Id.</summary>
+    Task<Respaldo> RegistrarAsync(Respaldo respaldo, CancellationToken ct = default);
+
+    /// <summary>El respaldo más reciente, hecho desde cualquier PC; null si nunca se hizo uno.</summary>
+    Task<Respaldo?> UltimoAsync(CancellationToken ct = default);
+
+    /// <summary>Últimos respaldos, del más reciente al más antiguo.</summary>
+    Task<IReadOnlyList<Respaldo>> ListarAsync(int limite = 10, CancellationToken ct = default);
+}
+
+/// <summary>
 /// Numeración de comprobantes en la base de datos central (HU-16).
 /// </summary>
 public interface ISerieRepositorio
