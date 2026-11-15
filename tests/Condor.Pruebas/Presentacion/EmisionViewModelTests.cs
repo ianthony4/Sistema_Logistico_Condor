@@ -144,4 +144,108 @@ public class EmisionViewModelTests
         Assert.Equal(TipoEmision.BoletaConDni, vm.Emision.Tipo);
         Assert.False(vm.Emision.EsBoleta);
     }
+
+    [Fact]
+    public async Task Factura_con_el_RUC_buscado_sale_con_la_serie_F001()
+    {
+        var (vm, comprobantes) = Crear();
+        await AgregarAsync(vm, "cemento", "20");
+        vm.Emision!.EsFactura = true;
+        vm.Cliente!.Documento = "20131312955";
+        await vm.Cliente.BuscarCommand.EjecutarAsync();
+
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        var factura = Assert.Single(comprobantes.Comprobantes);
+        Assert.Equal("F001-00000001", factura.NumeroCompleto);
+        Assert.Equal(TipoComprobante.Factura, factura.TipoComprobante);
+        Assert.Equal("Constructora Valle de Majes S.A.C.", factura.Cliente!.Nombre);
+        Assert.Contains("Factura electrónica F001-00000001 emitida", vm.Mensaje);
+        // La venta siguiente vuelve a ser boleta y el campo vuelve a aceptar DNI o RUC.
+        Assert.True(vm.Emision.EsBoleta);
+        Assert.False(vm.Cliente.ExigeRuc);
+    }
+
+    [Fact]
+    public async Task Factura_sin_cliente_no_se_emite_y_pide_el_RUC()
+    {
+        var (vm, comprobantes) = Crear();
+        await AgregarAsync(vm, "fierro", "4");
+        var pedidos = 0;
+        vm.Emision!.RucRequerido += () => pedidos++;
+
+        vm.Emision.EsFactura = true;
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        Assert.Empty(comprobantes.Comprobantes);
+        Assert.Equal(2, pedidos); // al elegir Factura y al intentar emitir
+        Assert.Contains("RUC", vm.Emision.Error);
+        Assert.True(vm.Cliente!.TieneError);
+        Assert.Equal("_RUC del cliente (factura)", vm.Cliente.EtiquetaDocumento);
+        Assert.Single(vm.Venta.Detalle); // la venta se conserva
+    }
+
+    [Fact]
+    public async Task Factura_con_un_cliente_de_DNI_pide_el_RUC_y_no_se_emite()
+    {
+        var (vm, comprobantes) = Crear();
+        await AgregarAsync(vm, "clavo", "2");
+        vm.Cliente!.Documento = "45879632";
+        await vm.Cliente.BuscarCommand.EjecutarAsync();
+
+        vm.Emision!.EsFactura = true;
+        Assert.Contains("RUC", vm.Cliente.Error);
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        Assert.Empty(comprobantes.Comprobantes);
+        Assert.Contains("RUC", vm.Emision.Error);
+    }
+
+    [Fact]
+    public async Task Con_Factura_elegida_un_DNI_no_se_busca()
+    {
+        var (vm, _) = Crear();
+        vm.Emision!.EsFactura = true;
+        vm.Cliente!.Documento = "45879632";
+
+        await vm.Cliente.BuscarCommand.EjecutarAsync();
+
+        Assert.False(vm.Cliente.HayCliente);
+        Assert.Contains("requiere el RUC", vm.Cliente.Error);
+    }
+
+    [Fact]
+    public async Task Volver_a_Boleta_quita_el_pedido_del_RUC()
+    {
+        var (vm, _) = Crear();
+        vm.Emision!.EsFactura = true;
+        vm.Cliente!.Documento = "4587";
+        await vm.Cliente.BuscarCommand.EjecutarAsync();
+        Assert.True(vm.Cliente.TieneError);
+
+        vm.Emision.EsBoleta = true;
+
+        Assert.False(vm.Cliente.ExigeRuc);
+        Assert.False(vm.Cliente.TieneError);
+        Assert.Equal("_DNI o RUC", vm.Cliente.EtiquetaDocumento);
+    }
+
+    [Fact]
+    public async Task Boletas_y_facturas_llevan_su_propia_numeracion()
+    {
+        var (vm, comprobantes) = Crear();
+
+        await AgregarAsync(vm, "clavo", "1");
+        await vm.Emision!.EmitirCommand.EjecutarAsync();
+        await AgregarAsync(vm, "cemento", "10");
+        vm.Emision.EsFactura = true;
+        vm.Cliente!.Documento = "20131312955";
+        await vm.Cliente.BuscarCommand.EjecutarAsync();
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+        await AgregarAsync(vm, "clavo", "1");
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        Assert.Equal(new[] { "B001-00000001", "F001-00000001", "B001-00000002" },
+            comprobantes.Comprobantes.Select(c => c.NumeroCompleto));
+    }
 }

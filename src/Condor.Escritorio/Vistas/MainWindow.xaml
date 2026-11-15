@@ -446,7 +446,7 @@
                             <TextBlock Text="Cliente" Style="{StaticResource TituloSerif}" FontSize="22" />
                         </DockPanel>
 
-                        <Label Content="_DNI o RUC" Target="{Binding ElementName=CampoDocumento}" FontSize="13" Padding="0,0,0,4" />
+                        <Label Content="{Binding EtiquetaDocumento}" Target="{Binding ElementName=CampoDocumento}" FontSize="13" Padding="0,0,0,4" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -547,7 +547,7 @@
                     <StackPanel>
                         <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="26" Margin="0,0,0,12" />
 
-                        <!-- Tipo de comprobante (HU-05, T-29). La factura llega con HU-06. -->
+                        <!-- Tipo de comprobante (HU-05, T-29) y factura con RUC (HU-06, T-51). -->
                         <UniformGrid Columns="3" Margin="0,0,0,16" DataContext="{Binding Emision}"
                                      Visibility="{Binding Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
@@ -555,8 +555,8 @@
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
                                          Content="Con DNI" IsChecked="{Binding EsBoletaConDni}" ToolTip="Boleta con el DNI del cliente." />
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
-                                         Content="Factura" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
-                                         ToolTip="La factura con RUC se habilita con HU-06 (Sprint 4)." />
+                                         Content="Factura" IsChecked="{Binding EsFactura}"
+                                         ToolTip="Factura con el RUC del cliente (serie F001)." />
                         </UniformGrid>
 
                         <DockPanel Margin="0,0,6,12">
@@ -634,7 +634,7 @@
                         </DockPanel>
                     </Border>
 
-                    <!-- Emite la boleta con el siguiente número de B001 (HU-05, T-29). -->
+                    <!-- Emite la boleta (B001) o la factura (F001) con el siguiente número (HU-05, HU-06). -->
                     <Button Style="{StaticResource BotonEmitir}" Height="64" FontSize="19"
                             Command="{Binding Emision.EmitirCommand}" ToolTipService.ShowOnDisabled="True"
                             ToolTip="Guarda el comprobante en la base central e imprime el ticket (F10).">
