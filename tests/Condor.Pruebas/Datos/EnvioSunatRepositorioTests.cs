@@ -7,7 +7,7 @@ using Npgsql;
 
 namespace Condor.Pruebas.Datos;
 
-/// <summary>Migración V007 y respuestas de la SUNAT (T-45).</summary>
+/// <summary>Migraciones V007 y V009: respuestas de la SUNAT (T-45) y reserva de los pendientes (T-55).</summary>
 [Collection(BaseDatos.Nombre)]
 public class EnvioSunatRepositorioTests
 {
@@ -127,6 +127,137 @@ public class EnvioSunatRepositorioTests
         Assert.Equal("CAYLLOMA", empresa.Provincia);
         Assert.Equal("MAJES", empresa.Distrito);
         Assert.Equal("0000", empresa.CodigoEstablecimiento);
+    }
+
+    [FactConBD]
+    public async Task Reservar_aparta_los_pendientes_para_una_sola_PC()
+    {
+        await PendientesDePrueba.ApartarLosDeOtrasPruebasAsync(_bd.Conexiones);
+        var emitidas = new[] { await EmitirAsync(), await EmitirAsync(), await EmitirAsync() };
+        var repo = new EnvioSunatRepositorio(_bd.Conexiones);
+
+        var pc1 = await repo.ReservarPendientesAsync("PC-1", TimeSpan.Zero);
+        var pc2 = await repo.ReservarPendientesAsync("PC-2", TimeSpan.Zero);
+
+        Assert.Equal(emitidas.Select(c => c.Id), pc1);
+        Assert.Empty(pc2);
+        Assert.Equal("PC-1", await PendientesDePrueba.ReservadoPorAsync(_bd.Conexiones, emitidas[0].Id));
+    }
+
+    [FactConBD]
+    public async Task Tres_PC_a_la_vez_nunca_apartan_el_mismo_comprobante()
+    {
+        await PendientesDePrueba.ApartarLosDeOtrasPruebasAsync(_bd.Conexiones);
+        var emitidas = new List<long>();
+        for (var i = 0; i < 10; i++)
+            emitidas.Add((await EmitirAsync()).Id);
+        await using var pcs = new TresPC();
+
+        // Cada vuelta, las tres PC apartan a la vez; una PC puede llevarse menos
+        // de 4 si las otras los tenían bloqueados, y los que faltan salen en la
+        // vuelta siguiente. Lo que nunca puede pasar es que dos PC aparten el mismo.
+        var todas = new List<long>();
+        for (var vuelta = 0; vuelta < 4 && todas.Count < emitidas.Count; vuelta++)
+        {
+            var reservas = await Task.WhenAll(pcs.Pc.Select((pc, i) =>
+                new EnvioSunatRepositorio(pc).ReservarPendientesAsync($"PC-{i + 1}", TimeSpan.Zero, limite: 4)));
+            todas.AddRange(reservas.SelectMany(r => r));
+        }
+
+        Assert.Equal(todas.Count, todas.Distinct().Count());
+        Assert.Equal(emitidas.Order(), todas.Order());
+    }
+
+    [FactConBD]
+    public async Task Registrar_la_falla_libera_la_reserva_y_la_respuesta_lo_saca_de_los_pendientes()
+    {
+        await PendientesDePrueba.ApartarLosDeOtrasPruebasAsync(_bd.Conexiones);
+        var boleta = await EmitirAsync();
+        var repo = new EnvioSunatRepositorio(_bd.Conexiones);
+
+        Assert.Equal(new[] { boleta.Id }, await repo.ReservarPendientesAsync("PC-1", TimeSpan.Zero));
+        await repo.RegistrarFallaAsync(boleta.Id, "No hay conexión a internet.");
+        Assert.Null(await PendientesDePrueba.ReservadoPorAsync(_bd.Conexiones, boleta.Id));
+
+        Assert.Equal(new[] { boleta.Id }, await repo.ReservarPendientesAsync("PC-2", TimeSpan.Zero));
+        await repo.RegistrarRespuestaAsync(boleta.Id, EnvioSunatFalso.Aceptada());
+        Assert.Empty(await repo.ReservarPendientesAsync("PC-3", TimeSpan.Zero));
+        Assert.Equal(EstadoSunat.Aceptado, (await LeerAsync(boleta.Id)).Estado);
+    }
+
+    [FactConBD]
+    public async Task Liberar_devuelve_solo_los_apartados_por_esa_PC_sin_sumar_intentos()
+    {
+        await PendientesDePrueba.ApartarLosDeOtrasPruebasAsync(_bd.Conexiones);
+        var propia = await EmitirAsync();
+        var ajena = await EmitirAsync();
+        var repo = new EnvioSunatRepositorio(_bd.Conexiones);
+        await repo.ReservarPendientesAsync("PC-1", TimeSpan.Zero, limite: 1);
+        await repo.ReservarPendientesAsync("PC-2", TimeSpan.Zero, limite: 1);
+
+        await repo.LiberarAsync("PC-1", new[] { propia.Id, ajena.Id });
+
+        Assert.Null(await PendientesDePrueba.ReservadoPorAsync(_bd.Conexiones, propia.Id));
+        Assert.Equal("PC-2", await PendientesDePrueba.ReservadoPorAsync(_bd.Conexiones, ajena.Id));
+        Assert.Equal(0, (await LeerAsync(propia.Id)).Intentos);
+        Assert.Equal(new[] { propia.Id }, await repo.ReservarPendientesAsync("PC-3", TimeSpan.Zero));
+    }
+
+    [FactConBD]
+    public async Task La_espera_entre_intentos_crece_con_cada_intento()
+    {
+        await PendientesDePrueba.ApartarLosDeOtrasPruebasAsync(_bd.Conexiones);
+        var boleta = await EmitirAsync();
+        var repo = new EnvioSunatRepositorio(_bd.Conexiones);
+        var espera = TimeSpan.FromMinutes(5);
+
+        // Recién emitida: aún se está enviando desde la pantalla de venta.
+        Assert.Empty(await repo.ReservarPendientesAsync("PC-1", espera));
+
+        // Dos intentos fallidos: la próxima vez toca después de 2 x 5 minutos.
+        await repo.RegistrarFallaAsync(boleta.Id, "Sin internet");
+        await repo.RegistrarFallaAsync(boleta.Id, "Sin internet");
+        await PendientesDePrueba.AtrasarAsync(_bd.Conexiones, boleta.Id, TimeSpan.FromMinutes(6));
+        Assert.Empty(await repo.ReservarPendientesAsync("PC-1", espera));
+
+        await PendientesDePrueba.AtrasarAsync(_bd.Conexiones, boleta.Id, TimeSpan.FromMinutes(5));
+        Assert.Equal(new[] { boleta.Id }, await repo.ReservarPendientesAsync("PC-1", espera));
+    }
+
+    [FactConBD]
+    public async Task Si_la_PC_que_lo_aparto_se_apaga_la_reserva_vence_y_otra_lo_retoma()
+    {
+        await PendientesDePrueba.ApartarLosDeOtrasPruebasAsync(_bd.Conexiones);
+        var boleta = await EmitirAsync();
+        var repo = new EnvioSunatRepositorio(_bd.Conexiones);
+        await repo.ReservarPendientesAsync("PC-1", TimeSpan.Zero);
+
+        await using (var conexion = await _bd.Conexiones.AbrirAsync())
+        await using (var cmd = new NpgsqlCommand(
+            "UPDATE comprobante_sunat SET reservado_hasta = now() - interval '1 second' WHERE comprobante_id = @id", conexion))
+        {
+            cmd.Parameters.AddWithValue("id", boleta.Id);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        Assert.Equal(new[] { boleta.Id }, await repo.ReservarPendientesAsync("PC-2", TimeSpan.Zero));
+        Assert.Equal("PC-2", await PendientesDePrueba.ReservadoPorAsync(_bd.Conexiones, boleta.Id));
+    }
+
+    [FactConBD]
+    public async Task El_resumen_cuenta_los_pendientes_y_el_mas_antiguo()
+    {
+        var repo = new EnvioSunatRepositorio(_bd.Conexiones);
+        var antes = await repo.ResumenPendientesAsync();
+
+        var primera = await EmitirAsync();
+        var segunda = await EmitirAsync();
+        await repo.RegistrarRespuestaAsync(segunda.Id, EnvioSunatFalso.Aceptada());
+        var despues = await repo.ResumenPendientesAsync();
+
+        Assert.Equal(antes.Cantidad + 1, despues.Cantidad);
+        Assert.NotNull(despues.MasAntiguo);
+        Assert.True(despues.MasAntiguo <= primera.Fecha);
     }
 
     private sealed record Fila(string Estado, string? Codigo, string? Xml, string? Hash, byte[]? Cdr, int Intentos, bool Respondido, string? UltimoError);
