@@ -8,7 +8,8 @@ namespace Condor.Presentacion.ViewModels;
 /// <summary>
 /// Tipo de comprobante y botón Emitir e imprimir (F10) del resumen de venta
 /// (HU-05, T-29). Valida con las reglas del dominio, guarda en la base central
-/// con el siguiente correlativo y avisa para imprimir el ticket.
+/// con el siguiente correlativo y avisa para imprimir el ticket. Desde el
+/// Sprint 4 también emite la factura con RUC en la serie F001 (HU-06, T-51).
 /// </summary>
 public sealed class EmisionViewModel : ObservableObject
 {
@@ -42,6 +43,9 @@ public sealed class EmisionViewModel : ObservableObject
     /// <summary>La emisión falló porque no responde la PC principal (T-06).</summary>
     public event Action? ConexionPerdida;
 
+    /// <summary>Se eligió Factura sin un cliente con RUC: la pantalla lleva el foco al campo DNI o RUC (HU-06).</summary>
+    public event Action? RucRequerido;
+
     public TipoEmision Tipo
     {
         get => _tipo;
@@ -51,7 +55,13 @@ public sealed class EmisionViewModel : ObservableObject
                 return;
             OnPropertyChanged(nameof(EsBoleta));
             OnPropertyChanged(nameof(EsBoletaConDni));
+            OnPropertyChanged(nameof(EsFactura));
             Error = null;
+
+            // HU-06: con la factura, el panel Cliente pide el RUC y recibe el foco.
+            _cliente?.ExigirRuc(value == TipoEmision.Factura);
+            if (value == TipoEmision.Factura && _cliente?.Seleccionado is not { TipoDocumento: TipoDocumento.Ruc })
+                RucRequerido?.Invoke();
         }
     }
 
@@ -73,6 +83,17 @@ public sealed class EmisionViewModel : ObservableObject
         {
             if (value)
                 Tipo = TipoEmision.BoletaConDni;
+        }
+    }
+
+    /// <summary>Factura con RUC, serie F001 (HU-06, T-51).</summary>
+    public bool EsFactura
+    {
+        get => Tipo == TipoEmision.Factura;
+        set
+        {
+            if (value)
+                Tipo = TipoEmision.Factura;
         }
     }
 
@@ -104,6 +125,9 @@ public sealed class EmisionViewModel : ObservableObject
             foreach (var error in errores.Where(e => e.Campo == CampoEmision.Documento))
                 _cliente?.SenalarError(error.Mensaje);
             Error = string.Join(" ", errores.Select(e => e.Mensaje));
+            // Criterio 2 de HU-06: la factura no se emite y se pide el RUC.
+            if (Tipo == TipoEmision.Factura && errores.Any(e => e.Campo == CampoEmision.Documento))
+                RucRequerido?.Invoke();
             return;
         }
 

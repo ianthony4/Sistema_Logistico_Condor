@@ -31,7 +31,15 @@ public partial class MainWindow : Window
                 return;
             vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
             if (vm.Emision is not null)
+            {
                 vm.Emision.Emitido += _ => CampoProducto.Focus();
+                // HU-06: al elegir Factura sin cliente con RUC, el cursor va al campo DNI o RUC.
+                vm.Emision.RucRequerido += () =>
+                {
+                    CampoDocumento.Focus();
+                    CampoDocumento.SelectAll();
+                };
+            }
         };
     }
 
