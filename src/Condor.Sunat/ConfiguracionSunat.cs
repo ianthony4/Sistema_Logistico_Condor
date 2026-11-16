@@ -7,6 +7,8 @@ namespace Condor.Sunat;
 /// Sección "Sunat" de condor.json (HU-07, T-46): ambiente, usuario y clave
 /// SOL y el certificado digital. Solo la llena la PC que envía los
 /// comprobantes; si falta, se emite igual y quedan pendientes de envío.
+/// Desde el Sprint 4 dice también cada cuánto se reenvían los pendientes
+/// (HU-17, T-57).
 /// </summary>
 public sealed class ConfiguracionSunat
 {
@@ -43,6 +45,15 @@ public sealed class ConfiguracionSunat
 
     /// <summary>Segundos que se espera a la SUNAT antes de dejar el comprobante pendiente.</summary>
     public int EsperaSegundos { get; set; } = 30;
+
+    /// <summary>
+    /// Cada cuántos minutos esta PC reenvía los comprobantes pendientes (HU-17,
+    /// T-57). 0 lo desactiva: útil si otra PC con internet ya se encarga.
+    /// </summary>
+    public int ReenvioMinutos { get; set; } = 5;
+
+    /// <summary>True si esta PC reenvía sola los pendientes.</summary>
+    public bool ReenviaPendientes => Configurada && ReenvioMinutos > 0;
 
     /// <summary>Solo para pruebas: otra URL del servicio sendBill.</summary>
     public string? Url { get; set; }
@@ -105,6 +116,8 @@ public sealed class ConfiguracionSunat
             throw new InvalidDataException($"{Seccion} > Ambiente debe ser \"Beta\" o \"Produccion\".");
         if (EsperaSegundos is < 5 or > 120)
             throw new InvalidDataException($"{Seccion} > EsperaSegundos debe estar entre 5 y 120.");
+        if (ReenvioMinutos is < 0 or > 60)
+            throw new InvalidDataException($"{Seccion} > ReenvioMinutos debe estar entre 1 y 60 (0 para no reenviar desde esta PC).");
         if (EsProduccion && Configurada && string.IsNullOrWhiteSpace(Certificado))
             throw new InvalidDataException($"{Seccion} > Certificado es obligatorio en producción: ponga la ruta del .pfx de la ferretería.");
         if (!string.IsNullOrWhiteSpace(Url) && !Uri.TryCreate(Url, UriKind.Absolute, out _))

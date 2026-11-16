@@ -38,6 +38,32 @@ public class ConfiguracionSunatTests : IDisposable
     }
 
     [Fact]
+    public void El_reenvio_de_pendientes_es_cada_5_minutos_salvo_que_se_indique_otro()
+    {
+        Escribir("""{ "Sunat": { "UsuarioSol": "MODDATOS", "ClaveSol": "moddatos" } }""");
+        var porDefecto = ConfiguracionSunat.Cargar(_carpeta);
+
+        Escribir("""{ "Sunat": { "UsuarioSol": "MODDATOS", "ClaveSol": "moddatos", "ReenvioMinutos": 0 } }""");
+        var sinReenvio = ConfiguracionSunat.Cargar(_carpeta);
+
+        Assert.Equal(5, porDefecto.ReenvioMinutos);
+        Assert.True(porDefecto.ReenviaPendientes);
+        Assert.False(sinReenvio.ReenviaPendientes);
+        Assert.False(new ConfiguracionSunat().ReenviaPendientes); // sin usuario SOL no hay nada que reenviar
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(61)]
+    public void Un_intervalo_de_reenvio_fuera_de_rango_se_rechaza(int minutos)
+    {
+        Escribir($$"""{ "Sunat": { "UsuarioSol": "MODDATOS", "ClaveSol": "moddatos", "ReenvioMinutos": {{minutos}} } }""");
+
+        var ex = Assert.Throws<InvalidDataException>(() => ConfiguracionSunat.Cargar(_carpeta));
+        Assert.Contains("ReenvioMinutos", ex.Message);
+    }
+
+    [Fact]
     public void Sin_archivo_o_sin_seccion_queda_sin_configurar()
     {
         Assert.False(ConfiguracionSunat.Cargar(_carpeta).Configurada);
