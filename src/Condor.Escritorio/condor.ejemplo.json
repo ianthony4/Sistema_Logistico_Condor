@@ -28,6 +28,19 @@
     "ClaveSol": "moddatos",
     "Certificado": "",
     "ClaveCertificado": "",
-    "EsperaSegundos": 30
+    "EsperaSegundos": 30,
+    // Cada cuántos minutos se reenvían solos los comprobantes que quedaron
+    // pendientes por falta de internet (HU-17). 0 = esta PC no los reenvía.
+    "ReenvioMinutos": 5
+  },
+
+  // Respaldo manual de la base de datos (HU-15). Solo en la PC principal,
+  // donde se conecta el disco externo. "Carpeta" es la del disco externo;
+  // "PgDump" se deja vacío para usar el pg_dump de PostgreSQL 16 instalado.
+  // Si el último respaldo tiene más de "AvisoHoras", se avisa al abrir.
+  "Respaldo": {
+    "Carpeta": "E:\\Respaldos Condor",
+    "PgDump": "",
+    "AvisoHoras": 24
   }
 }
