@@ -1,11 +1,11 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
 | `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos), ticketera falsa, SUNAT falsa y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
@@ -105,6 +105,26 @@ dotnet test --filter "FullyQualifiedName~HU07"
 ```
 
 La configuración y la prueba manual están en [sunat.md](sunat.md).
+
+## Factura con RUC (T-54)
+
+`Aceptacion/HU06_EmitirFacturaTests` emite desde la pantalla Nueva venta una
+factura a una constructora con RUC: comprueba que sale con la serie `F001` y
+el siguiente número, que se envía a la SUNAT (falsa) y que el ticket dice
+«FACTURA ELECTRÓNICA», el RUC y la forma de pago. También intenta emitirla
+sin cliente y con un cliente de DNI: no se emite, se pide el RUC y no se
+gasta ningún número de la `F001`. Las tres PC emiten facturas a la vez sobre
+una serie de prueba (`V001`, `V002`...) sin repetir ni saltar números.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU06"
+```
+
+Prueba manual (Definition of Done de HU-06): en la PC con ticketera elegir
+**Factura** en el resumen; el cursor pasa al campo **RUC del cliente**.
+Digitar el RUC de una empresa registrada, **Buscar** y **Emitir e imprimir
+(F10)**: el ticket sale como factura `F001` y bajo el botón se ve la
+respuesta de la SUNAT. Con Factura elegida y sin RUC, F10 no emite.
 
 ## Antes de mover una tarjeta a *Hecho*
 
