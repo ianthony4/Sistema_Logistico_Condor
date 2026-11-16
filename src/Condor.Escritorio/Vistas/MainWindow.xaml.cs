@@ -67,6 +67,21 @@ public partial class MainWindow : Window
         CampoProducto.Focus();
     }
 
+    // Proveedores (F6, HU-04, T-39): lista con búsqueda por RUC o razón
+    // social y + Nuevo proveedor.
+    private void Proveedores_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearProveedores();
+        if (vm is null)
+        {
+            Vm?.ModuloPendienteCommand.Execute("Proveedores");
+            return;
+        }
+
+        new ProveedoresWindow(vm) { Owner = this }.ShowDialog();
+        CampoProducto.Focus();
+    }
+
     // Historial (F5): últimos comprobantes para reimprimir el que no salió
     // (HU-12, criterio 2). La búsqueda completa llega con HU-18.
     private void Historial_Click(object sender, RoutedEventArgs e)
@@ -217,6 +232,11 @@ public partial class MainWindow : Window
         else if (tecla == Key.F5)
         {
             Historial_Click(sender, e);
+            e.Handled = true;
+        }
+        else if (tecla == Key.F6)
+        {
+            Proveedores_Click(sender, e);
             e.Handled = true;
         }
     }

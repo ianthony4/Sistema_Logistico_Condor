@@ -5,11 +5,11 @@ ferretería y emitir sus comprobantes electrónicos. Trabaja 100 % en la red
 local: las tres PC del local se conectan a una base de datos PostgreSQL 16
 central instalada en la PC principal.
 
-**Versión 0.2.0 – Incremento del Sprint 2** (21 de octubre al 3 de noviembre
-de 2026): clientes por DNI o RUC, emisión de boletas con o sin DNI e
-impresión directa en la ticketera térmica, sobre lo del Sprint 1 (perfil
-MAESTRO, base central para tres terminales, catálogo y búsqueda con
-autocompletado). Ver [CHANGELOG](CHANGELOG.md).
+**Versión 0.3.0 – Incremento del Sprint 3** (4 al 10 de noviembre de 2026):
+envío automático de cada boleta a la SUNAT con su CDR y registro de
+proveedores, sobre lo de los sprints anteriores (perfil MAESTRO, base central
+para tres terminales, catálogo con autocompletado, clientes por DNI o RUC,
+boletas con o sin DNI e impresión en la ticketera). Ver [CHANGELOG](CHANGELOG.md).
 
 ## Estructura
 
@@ -20,12 +20,13 @@ autocompletado). Ver [CHANGELOG](CHANGELOG.md).
 | `src/Condor.Dominio` | Entidades, reglas (validación, IGV) y contratos. |
 | `src/Condor.Datos` | Acceso a PostgreSQL (Npgsql), migraciones y repositorios. |
 | `src/Condor.Impresion` | Ticketera térmica: comandos ESC/POS y envío directo al spooler de Windows. |
+| `src/Condor.Sunat` | Facturación electrónica: XML UBL 2.1, firma digital, envío a la SUNAT (sendBill) y lectura del CDR. |
 | `db/migraciones` | Scripts SQL versionados; se aplican solos al abrir el programa. |
 | `db/servidor` | Instalación de la base central en la PC principal. |
 | `db/datos` | Lista de precios para la carga inicial del catálogo. |
 | `herramientas/Condor.CargaCatalogo` | Programa de consola para la carga inicial. |
 | `tests/Condor.Pruebas` | Pruebas unitarias, de integración y de aceptación (xUnit). |
-| `docs/` | Modelo de datos, instalación, ticketera y pruebas. |
+| `docs/` | Modelo de datos, instalación, ticketera, SUNAT y pruebas. |
 
 ## Puesta en marcha
 
@@ -39,6 +40,9 @@ autocompletado). Ver [CHANGELOG](CHANGELOG.md).
 5. **PC con ticketera:** instalarla y poner su nombre en `condor.json`
    según [docs/ticketera.md](docs/ticketera.md). Sin ticketera, el ticket se
    muestra en pantalla.
+6. **PC con internet:** completar la sección `Sunat` de `condor.json` según
+   [docs/sunat.md](docs/sunat.md) (ambiente beta en este sprint). Sin ella, los
+   comprobantes se emiten igual y quedan pendientes de envío.
 
 ## Atajos de la pantalla Nueva venta
 
@@ -50,7 +54,8 @@ autocompletado). Ver [CHANGELOG](CHANGELOG.md).
 | Alt+L | Nuevo cliente. |
 | F10 | Emitir e imprimir. |
 | F11 | Reimprimir el último ticket. |
-| F5 | Historial: últimos comprobantes para reimprimir. |
+| F5 | Historial: últimos comprobantes, su estado ante la SUNAT y reimpresión. |
+| F6 | Proveedores: buscar por RUC o razón social; Alt+N registra uno nuevo. |
 | Esc | Cancelar la venta en curso. |
 
 ## Desarrollo

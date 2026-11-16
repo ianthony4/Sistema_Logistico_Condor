@@ -19,11 +19,13 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
     private const string Cabecera = """
         SELECT c.id, s.tipo_comprobante, s.id, s.codigo, c.numero, c.fecha, c.terminal_id, t.nombre,
                c.usuario, c.op_gravada, c.igv, c.total, c.estado_sunat, c.impresiones,
-               cl.id, cl.tipo_documento, cl.numero_documento, cl.nombre, cl.direccion
+               cl.id, cl.tipo_documento, cl.numero_documento, cl.nombre, cl.direccion,
+               coalesce(cs.ultimo_error, cs.descripcion)
         FROM comprobante c
         JOIN serie s ON s.id = c.serie_id
         JOIN terminal t ON t.id = c.terminal_id
         LEFT JOIN cliente cl ON cl.id = c.cliente_id
+        LEFT JOIN comprobante_sunat cs ON cs.comprobante_id = c.id
         """;
 
     private readonly FabricaConexiones _conexiones;
@@ -197,6 +199,7 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
             Total = lector.GetDecimal(11),
             EstadoSunat = lector.GetString(12),
             Impresiones = lector.GetInt32(13),
+            MensajeSunat = lector.IsDBNull(19) ? null : lector.GetString(19),
         };
 
         if (!lector.IsDBNull(14))

@@ -38,7 +38,11 @@ public sealed class Comprobante
 
     public decimal Total { get; set; }
 
+    /// <summary>PENDIENTE, ACEPTADO, OBSERVADO o RECHAZADO (HU-07; ver Sunat.EstadoSunat).</summary>
     public string EstadoSunat { get; set; } = "PENDIENTE";
+
+    /// <summary>Descripción del CDR o motivo del último intento fallido; null si nunca se envió.</summary>
+    public string? MensajeSunat { get; set; }
 
     /// <summary>Veces que se imprimió en la ticketera; 0 si la impresión falló (HU-12).</summary>
     public int Impresiones { get; set; }
