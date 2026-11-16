@@ -1,5 +1,6 @@
 using Condor.Dominio.Entidades;
 using Condor.Dominio.Validacion;
+using Condor.Dominio.Ventas;
 
 namespace Condor.Pruebas.Infraestructura;
 
@@ -82,6 +83,45 @@ public static class DatosPrueba
         NombreComercial = "Ferretería Cóndor",
         Direccion = "Majes, Caylloma - Arequipa",
     };
+
+    // Facturas (HU-06): la constructora compra para una obra.
+
+    /// <summary>Pedido típico de una obra: 20 bolsas de cemento y 10 varillas de fierro (S/ 1030.00).</summary>
+    public static List<DetalleComprobante> DetalleObra() => new()
+    {
+        new() { ProductoId = 1, Descripcion = "Cemento Portland tipo I x 42.5 kg", Unidad = "BLS", Cantidad = 20, PrecioUnitario = 32.50m },
+        new() { ProductoId = 2, Descripcion = "Fierro corrugado 1/2 in x 9 m", Unidad = "VAR", Cantidad = 10, PrecioUnitario = 38.00m },
+    };
+
+    /// <summary>Factura F001 preparada por el dominio para la constructora (aún sin número).</summary>
+    public static Comprobante FacturaObra(Cliente? cliente = null)
+    {
+        var constructora = cliente ?? ClienteRuc();
+        if (constructora.Id == 0)
+            constructora.Id = 2;
+        return EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Factura, DetalleObra(), constructora));
+    }
+
+    // Respaldos (HU-15): el disco externo de la PC principal.
+
+    /// <summary>Carpeta del disco externo en la PC principal.</summary>
+    public const string DiscoExterno = @"E:\Respaldos Condor";
+
+    /// <summary>Respaldo terminado hace <paramref name="horas"/> horas en el disco externo.</summary>
+    public static Respaldo RespaldoDeHace(double horas, DateTimeOffset? ahora = null)
+    {
+        var terminado = (ahora ?? DateTimeOffset.Now).AddHours(-horas);
+        return new Respaldo
+        {
+            Archivo = Respaldo.NombreArchivo(terminado),
+            Carpeta = DiscoExterno,
+            Bytes = 845_312,
+            IniciadoEn = terminado.AddSeconds(-6),
+            TerminadoEn = terminado,
+            TerminalId = 1,
+            TerminalNombre = "PC-PRINCIPAL",
+        };
+    }
 
     /// <summary>DNI al azar, para que las pruebas con base de datos no choquen entre ejecuciones.</summary>
     public static string DniNuevo() => Random.Shared.Next(10_000_000, 99_999_999).ToString();

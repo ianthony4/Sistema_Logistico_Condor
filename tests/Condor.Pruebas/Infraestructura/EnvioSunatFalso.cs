@@ -6,6 +6,8 @@ namespace Condor.Pruebas.Infraestructura;
 /// <summary>
 /// SUNAT falsa (HU-07): responde al instante sin internet. Por defecto acepta
 /// todo; puede rechazar, observar, simular que no hay internet o tardar.
+/// Desde el Sprint 4 también simula que internet se corta a mitad de un
+/// reenvío (HU-17) y admite envíos desde varios hilos a la vez.
 /// </summary>
 public sealed class EnvioSunatFalso : IEnvioSunat
 {
@@ -20,16 +22,36 @@ public sealed class EnvioSunatFalso : IEnvioSunat
     /// <summary>Si se asigna, EnviarAsync no responde hasta que se complete (para probar que no bloquea la venta).</summary>
     public TaskCompletionSource? Demora { get; set; }
 
-    public List<Comprobante> Enviados { get; } = new();
+    /// <summary>Si se asigna, acepta esa cantidad de envíos más y después se queda sin internet (HU-17).</summary>
+    public int? SinInternetDespuesDe { get; set; }
+
+    private readonly List<Comprobante> _enviados = new();
+
+    /// <summary>Comprobantes que llegaron a la SUNAT, en el orden en que llegaron.</summary>
+    public IReadOnlyList<Comprobante> Enviados
+    {
+        get
+        {
+            lock (_enviados)
+                return _enviados.ToList();
+        }
+    }
 
     public async Task<RespuestaSunat> EnviarAsync(Empresa empresa, Comprobante comprobante, CancellationToken ct = default)
     {
         if (Demora is not null)
             await Demora.Task.WaitAsync(ct);
-        if (SinInternet)
-            throw new SunatNoDisponibleException("No hay conexión a internet.");
 
-        Enviados.Add(comprobante);
+        lock (_enviados)
+        {
+            if (SinInternetDespuesDe is <= 0)
+                SinInternet = true;
+            if (SinInternet)
+                throw new SunatNoDisponibleException("No hay conexión a internet.");
+            if (SinInternetDespuesDe is { } quedan)
+                SinInternetDespuesDe = quedan - 1;
+            _enviados.Add(comprobante);
+        }
         var nombre = $"{empresa.Ruc}-{comprobante.TipoComprobante}-{comprobante.SerieCodigo}-{comprobante.Numero}";
         return Respuesta ?? Aceptada(nombre);
     }

@@ -94,15 +94,17 @@ public class EnvioSunatViewModelTests
         sunat.Demora = new TaskCompletionSource();
 
         var primera = await EmitirAsync(vm);
+        var primerEnvio = vm.UltimoEnvioSunat;
         Assert.True(vm.EnvioSunat!.Enviando);
-        Assert.False(vm.UltimoEnvioSunat.IsCompleted);
+        Assert.False(primerEnvio.IsCompleted);
 
         var segunda = await EmitirAsync(vm); // no espera a la SUNAT
 
         Assert.Equal(primera.Numero + 1, segunda.Numero);
         Assert.Equal(2, ticketera.Impresos.Count);
         sunat.Demora.SetResult();
-        await vm.UltimoEnvioSunat;
+        // Se esperan los dos envíos: al soltar la demora pueden terminar en cualquier orden.
+        await Task.WhenAll(primerEnvio, vm.UltimoEnvioSunat);
         Assert.Equal(2, sunat.Enviados.Count);
     }
 
