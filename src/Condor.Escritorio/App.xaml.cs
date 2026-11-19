@@ -5,6 +5,7 @@ using Condor.Datos;
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
 using Condor.Dominio.Impresion;
+using Condor.Dominio.Sunat;
 using Condor.Escritorio.Impresion;
 using Condor.Escritorio.Vistas;
 using Condor.Impresion;
@@ -22,6 +23,7 @@ public partial class App : Application
     private MainViewModel? _vm;
     private AvisoCatalogo? _avisoCatalogo;
     private DispatcherTimer? _monitorConexion;
+    private DispatcherTimer? _temporizadorReenvio;
     private bool _baseDatosLista;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -68,8 +70,21 @@ public partial class App : Application
         // HU-07: cada boleta se envía a la SUNAT al emitirla. Sin la sección
         // Sunat en condor.json se emite igual y queda pendiente de envío.
         var sunat = CargarSunat();
-        _vm.EnvioSunat = new EnvioSunatViewModel(sunat.Configurada ? new ServicioEnvioSunat(sunat) : null,
-            new EmpresaRepositorio(Conexiones), new EnvioSunatRepositorio(Conexiones));
+        var servicioSunat = sunat.Configurada ? new ServicioEnvioSunat(sunat) : null;
+        var registroSunat = new EnvioSunatRepositorio(Conexiones);
+        _vm.EnvioSunat = new EnvioSunatViewModel(servicioSunat, new EmpresaRepositorio(Conexiones), registroSunat);
+
+        // HU-17: los pendientes se reenvían solos cada ReenvioMinutos. Las PC
+        // sin la SUNAT configurada solo muestran cuántos quedan.
+        IReenvioPendientes? reenvio = servicioSunat is not null && sunat.ReenviaPendientes
+            ? new ReenvioPendientes(servicioSunat, registroSunat, comprobantes, new EmpresaRepositorio(Conexiones), nombreEquipo)
+            : null;
+        _vm.ReenvioSunat = new ReenvioSunatViewModel(reenvio, registroSunat);
+        if (reenvio is not null)
+        {
+            _temporizadorReenvio = new DispatcherTimer { Interval = TimeSpan.FromMinutes(sunat.ReenvioMinutos) };
+            _temporizadorReenvio.Tick += async (_, _) => await _vm.ReenvioSunat.ReenviarAsync();
+        }
 
         var ventana = new MainWindow { DataContext = _vm };
         MainWindow = ventana;
@@ -135,6 +150,14 @@ public partial class App : Application
             _vm.Mensaje = aplicadas == 0
                 ? $"Conectado a la base de datos central ({_config})."
                 : $"Conectado a {_config}. Base de datos actualizada ({aplicadas} migraciones).";
+
+            // HU-17: primera vuelta del reenvío al abrir y luego cada ReenvioMinutos.
+            if (_vm.ReenvioSunat is { } reenvio)
+            {
+                await reenvio.ActualizarAsync();
+                _temporizadorReenvio?.Start();
+                _ = reenvio.ReenviarAsync();
+            }
         }
         catch (SinConexionException)
         {
@@ -152,6 +175,7 @@ public partial class App : Application
     protected override async void OnExit(ExitEventArgs e)
     {
         _monitorConexion?.Stop();
+        _temporizadorReenvio?.Stop();
         if (_avisoCatalogo is not null)
             await _avisoCatalogo.DisposeAsync();
         if (Conexiones is not null)
