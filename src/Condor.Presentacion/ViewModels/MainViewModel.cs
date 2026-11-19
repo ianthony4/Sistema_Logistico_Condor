@@ -16,6 +16,9 @@ public sealed class MainViewModel : ObservableObject
     private ImpresionViewModel? _impresion;
     private EnvioSunatViewModel? _envioSunat;
     private ReenvioSunatViewModel? _reenvioSunat;
+    private IGeneradorRespaldo? _generadorRespaldo;
+    private IRespaldoRepositorio? _respaldos;
+    private string? _carpetaRespaldo;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -235,6 +238,29 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     public ComprobantesRecientesViewModel? CrearComprobantesRecientes() =>
         _comprobantes is null || Impresion is null ? null : new ComprobantesRecientesViewModel(_comprobantes, Impresion, ReenvioSunat);
+
+    /// <summary>
+    /// Respaldo manual (F9, HU-15). Lo llama el arranque: el generador solo
+    /// existe en la PC principal, que tiene el disco externo.
+    /// </summary>
+    public void ConfigurarRespaldo(IGeneradorRespaldo? generador, IRespaldoRepositorio registro, string? carpeta)
+    {
+        _generadorRespaldo = generador;
+        _respaldos = registro;
+        _carpetaRespaldo = carpeta;
+    }
+
+    /// <summary>Ventana Respaldo (F9, T-62); null si el arranque no configuró los respaldos.</summary>
+    public RespaldoViewModel? CrearRespaldo()
+    {
+        if (_respaldos is null)
+            return null;
+
+        var vm = new RespaldoViewModel(_generadorRespaldo, _respaldos, () => Sesion, _carpetaRespaldo);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        vm.RespaldoGenerado += r => Mensaje = $"Respaldo generado: {r.Archivo} ({r.Tamano}) en {r.Carpeta}.";
+        return vm;
+    }
 
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>
     public void AlCambiarCatalogo() => Buscador?.Refrescar();

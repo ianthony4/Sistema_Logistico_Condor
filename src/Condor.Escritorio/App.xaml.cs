@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Condor.Datos;
+using Condor.Datos.Respaldos;
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
 using Condor.Dominio.Impresion;
@@ -86,6 +87,12 @@ public partial class App : Application
             _temporizadorReenvio.Tick += async (_, _) => await _vm.ReenvioSunat.ReenviarAsync();
         }
 
+        // HU-15: el respaldo se genera en la PC principal, donde se conecta el
+        // disco externo (sección Respaldo de condor.json); las demás solo ven el último.
+        var respaldo = CargarRespaldo();
+        _vm.ConfigurarRespaldo(respaldo.Configurada ? new GeneradorRespaldo(Conexiones, respaldo.PgDump) : null,
+            new RespaldoRepositorio(Conexiones), respaldo.Carpeta);
+
         var ventana = new MainWindow { DataContext = _vm };
         MainWindow = ventana;
         ventana.Show();
@@ -123,6 +130,21 @@ public partial class App : Application
             MessageBox.Show($"{ex.Message}\nLos comprobantes quedarán pendientes de envío a la SUNAT hasta corregir condor.json.",
                 "Configuración de la SUNAT", MessageBoxButton.OK, MessageBoxImage.Warning);
             return new ConfiguracionSunat();
+        }
+    }
+
+    /// <summary>Sección Respaldo de condor.json; si está mal escrita se avisa y esta PC no genera respaldos.</summary>
+    private static ConfiguracionRespaldo CargarRespaldo()
+    {
+        try
+        {
+            return ConfiguracionRespaldo.Cargar();
+        }
+        catch (InvalidDataException ex)
+        {
+            MessageBox.Show($"{ex.Message}\nNo se podrán generar respaldos desde esta PC hasta corregir condor.json.",
+                "Configuración del respaldo", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return new ConfiguracionRespaldo();
         }
     }
 
