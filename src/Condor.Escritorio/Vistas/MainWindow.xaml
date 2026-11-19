@@ -149,6 +149,24 @@
                         <TextBlock Text="{Binding EnvioSunat.Ambiente}" Margin="0,0,20,0" Foreground="{StaticResource TextoSuave}"
                                    ToolTip="Envío de comprobantes a la SUNAT (HU-07)." />
 
+                        <!-- Pendientes de envío a la SUNAT (HU-17, T-58): se reenvían solos;
+                             en rojo si el más antiguo está por vencer el plazo de 3 días. -->
+                        <TextBlock DataContext="{Binding ReenvioSunat}" Text="{Binding Aviso}" ToolTip="{Binding Detalle}"
+                                   Margin="0,0,20,0" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="460"
+                                   Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource Acento}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PorVencer}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource Error}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
                         <!-- Indicador de conexión (T-06). -->
                         <StackPanel Orientation="Horizontal" DataContext="{Binding Conexion}">
                             <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,8,0">

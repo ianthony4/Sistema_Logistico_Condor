@@ -22,7 +22,7 @@
             </Border>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="Últimos comprobantes" FontSize="20" FontWeight="Bold" />
-                <TextBlock Text="Elija el comprobante y pulse Reimprimir (F11). Los que no salieron dicen «Sin imprimir». La columna SUNAT dice si ya fue aceptado."
+                <TextBlock Text="Elija el comprobante y pulse Reimprimir (F11). Los que no salieron dicen «Sin imprimir». La columna SUNAT dice si ya fue aceptado; los pendientes se reenvían solos."
                            Foreground="{StaticResource TextoSuave}" FontSize="13" />
             </StackPanel>
         </DockPanel>
@@ -45,6 +45,16 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72C;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
                         <AccessText Text="_Actualizar (F5)" />
+                    </StackPanel>
+                </Button>
+                <!-- HU-17: reenviar ya los pendientes, sin esperar al reenvío automático. -->
+                <Button DockPanel.Dock="Left" Command="{Binding ReenviarCommand}" Margin="0,0,16,0"
+                        Visibility="{Binding PuedeReenviar, Converter={StaticResource BoolAVisible}}"
+                        ToolTipService.ShowOnDisabled="True"
+                        ToolTip="Envía ahora a la SUNAT los comprobantes pendientes (también se reenvían solos cada pocos minutos).">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE898;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                        <AccessText Text="R_eenviar a la SUNAT" />
                     </StackPanel>
                 </Button>
                 <TextBlock Text="{Binding Mensaje}" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="13"

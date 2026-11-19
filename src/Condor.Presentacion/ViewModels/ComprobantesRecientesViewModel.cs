@@ -10,7 +10,8 @@ namespace Condor.Presentacion.ViewModels;
 /// Últimos comprobantes emitidos, para reimprimir el que no salió (HU-12,
 /// criterio 2; T-33). Es la primera parte del Historial (F5); la búsqueda por
 /// fecha y cliente llega con HU-18. Desde el Sprint 3 muestra también el
-/// estado de cada comprobante ante la SUNAT (HU-07, T-48).
+/// estado de cada comprobante ante la SUNAT (HU-07, T-48) y desde el Sprint 4
+/// permite reenviar en el acto los pendientes (HU-17, T-58).
 /// </summary>
 public sealed class ComprobantesRecientesViewModel : ObservableObject
 {
@@ -18,16 +19,24 @@ public sealed class ComprobantesRecientesViewModel : ObservableObject
 
     private readonly IComprobanteRepositorio _comprobantes;
     private readonly ImpresionViewModel _impresion;
+    private readonly ReenvioSunatViewModel? _reenvio;
     private Comprobante? _seleccionado;
     private string? _mensaje;
 
-    public ComprobantesRecientesViewModel(IComprobanteRepositorio comprobantes, ImpresionViewModel impresion)
+    /// <param name="reenvio">Reenvío a la SUNAT de esta PC; null o inactivo si esta PC no reenvía.</param>
+    public ComprobantesRecientesViewModel(IComprobanteRepositorio comprobantes, ImpresionViewModel impresion,
+        ReenvioSunatViewModel? reenvio = null)
     {
         _comprobantes = comprobantes;
         _impresion = impresion;
+        _reenvio = reenvio;
         ActualizarCommand = new AsyncRelayCommand(CargarAsync);
         ReimprimirCommand = new AsyncRelayCommand(ReimprimirAsync, () => Seleccionado is not null);
+        ReenviarCommand = new AsyncRelayCommand(ReenviarAsync, () => PuedeReenviar && PendientesSunat > 0);
     }
+
+    /// <summary>Esta PC tiene la SUNAT configurada y puede reenviar los pendientes (HU-17).</summary>
+    public bool PuedeReenviar => _reenvio is { Activo: true };
 
     public ObservableCollection<Comprobante> Comprobantes { get; } = new();
 
@@ -58,6 +67,9 @@ public sealed class ComprobantesRecientesViewModel : ObservableObject
 
     public AsyncRelayCommand ReimprimirCommand { get; }
 
+    /// <summary>Reenviar a la SUNAT los pendientes, sin esperar al reenvío automático (HU-17).</summary>
+    public AsyncRelayCommand ReenviarCommand { get; }
+
     public async Task CargarAsync()
     {
         try
@@ -70,12 +82,22 @@ public sealed class ComprobantesRecientesViewModel : ObservableObject
             Seleccionado = Comprobantes.FirstOrDefault(c => c.Impresiones == 0) ?? Comprobantes.FirstOrDefault();
             OnPropertyChanged(nameof(PendientesSunat));
             OnPropertyChanged(nameof(RechazadosSunat));
+            ReenviarCommand.NotificarCambio();
             Mensaje = Comprobantes.Count == 0 ? "Aún no hay comprobantes emitidos." : ResumenSunat();
         }
         catch (SinConexionException)
         {
             Mensaje = "Sin conexión con la PC principal: no se pueden listar los comprobantes.";
         }
+    }
+
+    private async Task ReenviarAsync()
+    {
+        Mensaje = "Reenviando a la SUNAT…";
+        var resultado = await _reenvio!.ReenviarAsync(inmediato: true);
+        await CargarAsync();
+        Mensaje = resultado?.Resumen
+                  ?? "No había pendientes listos para reenviar: los recién emitidos esperan unos segundos. Pulse de nuevo en un momento.";
     }
 
     private static bool EsElectronico(Comprobante c) =>
