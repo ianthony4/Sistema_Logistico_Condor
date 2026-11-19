@@ -15,6 +15,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IProveedorRepositorio? _proveedores;
     private ImpresionViewModel? _impresion;
     private EnvioSunatViewModel? _envioSunat;
+    private ReenvioSunatViewModel? _reenvioSunat;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -138,6 +139,19 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Reenvío automático de los pendientes y su aviso en el pie (HU-17). Lo asigna el arranque.</summary>
+    public ReenvioSunatViewModel? ReenvioSunat
+    {
+        get => _reenvioSunat;
+        set
+        {
+            if (!SetProperty(ref _reenvioSunat, value) || value is null)
+                return;
+            value.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+            value.Reenviado += resumen => Mensaje = resumen;
+        }
+    }
+
     /// <summary>Última impresión lanzada al emitir; las pruebas la esperan con await.</summary>
     public Task UltimaImpresion { get; private set; } = Task.CompletedTask;
 
@@ -215,9 +229,12 @@ public sealed class MainViewModel : ObservableObject
         return vm;
     }
 
-    /// <summary>Últimos comprobantes para reimprimir (F5, HU-12); null si no hay ticketera ni comprobantes.</summary>
+    /// <summary>
+    /// Últimos comprobantes para reimprimir (F5, HU-12) y reenviar los
+    /// pendientes a la SUNAT (HU-17); null si no hay ticketera ni comprobantes.
+    /// </summary>
     public ComprobantesRecientesViewModel? CrearComprobantesRecientes() =>
-        _comprobantes is null || Impresion is null ? null : new ComprobantesRecientesViewModel(_comprobantes, Impresion);
+        _comprobantes is null || Impresion is null ? null : new ComprobantesRecientesViewModel(_comprobantes, Impresion, ReenvioSunat);
 
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>
     public void AlCambiarCatalogo() => Buscador?.Refrescar();
@@ -235,7 +252,15 @@ public sealed class MainViewModel : ObservableObject
         Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida. Total S/ {comprobante.Total:0.00}.";
         UltimaImpresion = ImprimirAsync(comprobante);
         if (EnvioSunat is not null)
-            UltimoEnvioSunat = EnvioSunat.EnviarAsync(comprobante);
+            UltimoEnvioSunat = EnviarSunatAsync(comprobante);
+    }
+
+    /// <summary>Envía al emitir (HU-07) y vuelve a contar los pendientes del pie (HU-17).</summary>
+    private async Task EnviarSunatAsync(Comprobante comprobante)
+    {
+        await EnvioSunat!.EnviarAsync(comprobante);
+        if (ReenvioSunat is not null)
+            await ReenvioSunat.ActualizarAsync();
     }
 
     private async Task ImprimirAsync(Comprobante comprobante)
