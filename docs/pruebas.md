@@ -1,11 +1,11 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
 | `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos), ticketera falsa, SUNAT falsa y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
@@ -125,6 +125,29 @@ Prueba manual (Definition of Done de HU-06): en la PC con ticketera elegir
 Digitar el RUC de una empresa registrada, **Buscar** y **Emitir e imprimir
 (F10)**: el ticket sale como factura `F001` y bajo el botón se ve la
 respuesta de la SUNAT. Con Factura elegida y sin RUC, F10 no emite.
+
+## Reenvío automático a la SUNAT (T-59)
+
+`Aceptacion/HU17_ReenvioAutomaticoTests` vende sin internet (SUNAT falsa) y
+comprueba que, al volver la conexión, la vuelta del reenvío envía los
+pendientes del más antiguo al más reciente y guarda su estado y su CDR; que
+mientras sigue sin internet no se gastan intentos en los demás; que la
+factura pendiente también se reenvía; que el reenvío no se cruza con el envío
+de una venta recién emitida; que dos PC que reenvían a la vez nunca mandan
+el mismo comprobante, y que el pie avisa cuando un pendiente lleva más de 2
+días (la SUNAT da 3). Antes de cada prueba, los pendientes que dejaron otras
+pruebas quedan apartados para otra PC (`Infraestructura/PendientesDePrueba`).
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU17"
+```
+
+Prueba manual (Definition of Done de HU-17): en la PC con la SUNAT
+configurada, desconectar el cable de internet (no el de la red local) y
+emitir dos boletas: bajo Emitir dice «quedó pendiente» y el pie muestra
+«2 pendientes SUNAT». Volver a conectar internet y esperar los minutos de
+`ReenvioMinutos` (o pulsar **Reenviar a la SUNAT** en el Historial, F5):
+el aviso desaparece y en el Historial las dos dicen «Aceptada».
 
 ## Antes de mover una tarjeta a *Hecho*
 
