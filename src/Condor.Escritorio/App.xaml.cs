@@ -91,7 +91,7 @@ public partial class App : Application
         // disco externo (sección Respaldo de condor.json); las demás solo ven el último.
         var respaldo = CargarRespaldo();
         _vm.ConfigurarRespaldo(respaldo.Configurada ? new GeneradorRespaldo(Conexiones, respaldo.PgDump) : null,
-            new RespaldoRepositorio(Conexiones), respaldo.Carpeta);
+            new RespaldoRepositorio(Conexiones), respaldo.Carpeta, respaldo.AvisoHoras);
 
         var ventana = new MainWindow { DataContext = _vm };
         MainWindow = ventana;
@@ -172,6 +172,10 @@ public partial class App : Application
             _vm.Mensaje = aplicadas == 0
                 ? $"Conectado a la base de datos central ({_config})."
                 : $"Conectado a {_config}. Base de datos actualizada ({aplicadas} migraciones).";
+
+            // HU-15, criterio 2: si el último respaldo tiene más de 24 horas, se avisa.
+            if (_vm.AvisoRespaldo is { } avisoRespaldo)
+                await avisoRespaldo.RevisarAsync();
 
             // HU-17: primera vuelta del reenvío al abrir y luego cada ReenvioMinutos.
             if (_vm.ReenvioSunat is { } reenvio)

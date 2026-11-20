@@ -220,8 +220,9 @@
                     <TextBlock x:Name="Hora" FontSize="15" />
                 </StackPanel>
 
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="3">
                 <!-- Aviso de pérdida de conexión (T-06): no borra nada de la pantalla. -->
-                <Border Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
+                <Border Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
                         Background="{StaticResource ErrorSuave}" BorderBrush="#E8B9AE" BorderThickness="1"
                         DataContext="{Binding Conexion}"
                         Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
@@ -233,6 +234,28 @@
                                    Foreground="{StaticResource Error}" FontWeight="SemiBold" />
                     </DockPanel>
                 </Border>
+
+                <!-- Respaldo vencido (HU-15, criterio 2; T-63): más de 24 horas sin respaldo. -->
+                <Border Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
+                        Background="{StaticResource AcentoSuave}" BorderBrush="{StaticResource Acento}" BorderThickness="1"
+                        DataContext="{Binding AvisoRespaldo}"
+                        Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Más _tarde" Height="34" Margin="10,0,0,0"
+                                Command="{Binding DescartarCommand}" />
+                        <Button DockPanel.Dock="Right" Height="34" Padding="12,0" Click="Respaldo_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE753;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                                <TextBlock Text="Respaldo (F9)" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE753;" Style="{StaticResource Icono}" Foreground="{StaticResource Acento}"
+                                   Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding Aviso}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
+                                   Foreground="{StaticResource Acento}" FontWeight="SemiBold" />
+                    </DockPanel>
+                </Border>
+                </StackPanel>
 
                 <!-- Línea tenue bajo el título. -->
                 <Border Grid.Row="2" Height="1" Background="{StaticResource Borde}" VerticalAlignment="Top" Margin="0,14,0,0" />

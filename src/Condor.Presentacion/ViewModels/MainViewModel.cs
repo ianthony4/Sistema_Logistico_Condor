@@ -19,6 +19,7 @@ public sealed class MainViewModel : ObservableObject
     private IGeneradorRespaldo? _generadorRespaldo;
     private IRespaldoRepositorio? _respaldos;
     private string? _carpetaRespaldo;
+    private AvisoRespaldoViewModel? _avisoRespaldo;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -241,13 +242,23 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>
     /// Respaldo manual (F9, HU-15). Lo llama el arranque: el generador solo
-    /// existe en la PC principal, que tiene el disco externo.
+    /// existe en la PC principal, que tiene el disco externo. En todas las PC
+    /// se avisa si el último respaldo tiene más de <paramref name="avisoHoras"/> horas.
     /// </summary>
-    public void ConfigurarRespaldo(IGeneradorRespaldo? generador, IRespaldoRepositorio registro, string? carpeta)
+    public void ConfigurarRespaldo(IGeneradorRespaldo? generador, IRespaldoRepositorio registro, string? carpeta,
+        int avisoHoras = 24, Func<DateTimeOffset>? ahora = null)
     {
         _generadorRespaldo = generador;
         _respaldos = registro;
         _carpetaRespaldo = carpeta;
+        AvisoRespaldo = new AvisoRespaldoViewModel(registro, avisoHoras, ahora);
+    }
+
+    /// <summary>Aviso de respaldo vencido al abrir el sistema (HU-15, criterio 2).</summary>
+    public AvisoRespaldoViewModel? AvisoRespaldo
+    {
+        get => _avisoRespaldo;
+        private set => SetProperty(ref _avisoRespaldo, value);
     }
 
     /// <summary>Ventana Respaldo (F9, T-62); null si el arranque no configuró los respaldos.</summary>
@@ -258,7 +269,11 @@ public sealed class MainViewModel : ObservableObject
 
         var vm = new RespaldoViewModel(_generadorRespaldo, _respaldos, () => Sesion, _carpetaRespaldo);
         vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
-        vm.RespaldoGenerado += r => Mensaje = $"Respaldo generado: {r.Archivo} ({r.Tamano}) en {r.Carpeta}.";
+        vm.RespaldoGenerado += r =>
+        {
+            Mensaje = $"Respaldo generado: {r.Archivo} ({r.Tamano}) en {r.Carpeta}.";
+            AvisoRespaldo?.RespaldoGenerado(r);
+        };
         return vm;
     }
 
