@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
-| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos), ticketera falsa, SUNAT falsa y conexión a la BD de pruebas. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
@@ -148,6 +148,28 @@ emitir dos boletas: bajo Emitir dice «quedó pendiente» y el pie muestra
 «2 pendientes SUNAT». Volver a conectar internet y esperar los minutos de
 `ReenvioMinutos` (o pulsar **Reenviar a la SUNAT** en el Historial, F5):
 el aviso desaparece y en el Historial las dos dicen «Aceptada».
+
+## Respaldo (T-64)
+
+`Aceptacion/HU15_RespaldoTests` genera el respaldo desde la ventana F9 de la
+PC principal con un `pg_dump` simulado que escribe en una carpeta temporal
+(el «disco externo»): comprueba el nombre con la fecha y la hora, el avance
+y la confirmación, y que las otras PC lo ven como el último. Sin el disco
+conectado no se genera nada. El aviso de las 24 horas se prueba simulando que
+se abre el sistema 25 horas (aviso) y 3 horas (sin aviso) después del último
+respaldo. La prueba `[FactConPgDump]` ejecuta el `pg_dump` real y comprueba
+que el archivo tiene la firma `PGDMP`; se omite si no se define
+`CONDOR_PG_DUMP`:
+
+```powershell
+$env:CONDOR_PG_DUMP = "C:\Program Files\PostgreSQL\16\bin\pg_dump.exe"
+dotnet test --filter "FullyQualifiedName~HU15"
+```
+
+Prueba manual (Definition of Done de HU-15): en la PC principal, con el
+disco externo conectado, **Respaldo (F9)** > **Generar respaldo**; al
+terminar, el archivo `condor_AAAA-MM-DD_HH-mm.backup` está en el disco. Luego
+seguir el «Ensayo de restauración» de [respaldo.md](respaldo.md).
 
 ## Antes de mover una tarjeta a *Hecho*
 
