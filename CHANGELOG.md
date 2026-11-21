@@ -1,5 +1,56 @@
 # Cambios
 
+## 0.4.0 – Sprint 4 (14 al 20 de noviembre de 2026)
+
+Objetivo del sprint: atender a las empresas y obras con factura, que ningún
+comprobante se quede sin llegar a la SUNAT cuando se cae internet y no perder
+la información ante un corte de energía. Sprint de una semana.
+
+### HU-06 · Emitir factura electrónica con RUC
+- Opción Factura en el resumen de venta: el campo del cliente pasa a pedir el
+  RUC y recibe el foco; sin un cliente con RUC no se emite (T-51).
+- Ticket de la factura con razón social, RUC y dirección del cliente y forma
+  de pago Contado (T-52).
+- Migración V008: la base central rechaza una factura sin cliente con RUC,
+  aunque venga de una PC con una versión vieja (T-53).
+- Pruebas de aceptación, incluidas facturas desde tres PC a la vez (T-54).
+
+### HU-17 · Reenvío automático de pendientes a SUNAT
+- Migración V009: cada PC aparta los pendientes antes de reenviarlos; dos PC
+  nunca envían el mismo comprobante y la reserva vence si la PC se apaga (T-55).
+- Reenvío en segundo plano del más antiguo al más reciente, con espera
+  creciente entre intentos; si se corta internet se detiene sin gastar
+  intentos (T-56).
+- `ReenvioMinutos` en la sección Sunat de condor.json (T-57).
+- Pie de la pantalla de venta con los pendientes y aviso en rojo si el más
+  antiguo está por vencer el plazo de 3 días; botón Reenviar a la SUNAT en el
+  Historial (T-58).
+- Pruebas de aceptación (T-59).
+
+### HU-15 · Respaldo manual de la base de datos
+- Migración V010 y registro de los respaldos en la base central (T-60).
+- Respaldo con pg_dump (formato personalizado) en el disco externo, con la
+  fecha y la hora en el nombre y el avance tabla por tabla; sin archivos a
+  medias si algo falla (T-61).
+- Ventana Respaldo (F9) con la carpeta del disco, barra de progreso y
+  confirmación (T-62).
+- Aviso al abrir el sistema si el último respaldo tiene más de 24 horas
+  (`AvisoHoras` de la sección Respaldo) (T-63).
+- Pruebas de aceptación, también con el pg_dump real, y guía de respaldo y
+  restauración docs/respaldo.md (T-64).
+
+### Transversales
+- Datos de prueba de facturas, respaldos y pendientes; SUNAT falsa que se
+  queda sin internet a mitad y admite varios hilos; corrección de una prueba
+  de HU-07 que fallaba a veces (T-65).
+
+### Pendiente para el Sprint 5
+- Consultar el CDR con getStatusCdr cuando la SUNAT dice que el comprobante ya
+  fue recibido (código 1033).
+- Notas de venta, proformas, compras a proveedores e historial completo
+  (HU-08, HU-09, HU-11, HU-18).
+- Pasar a producción con el certificado digital y el usuario SOL de la ferretería.
+
 ## 0.3.0 – Sprint 3 (4 al 10 de noviembre de 2026)
 
 Objetivo del sprint: que cada boleta emitida llegue sola a la SUNAT y quede

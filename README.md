@@ -5,11 +5,13 @@ ferretería y emitir sus comprobantes electrónicos. Trabaja 100 % en la red
 local: las tres PC del local se conectan a una base de datos PostgreSQL 16
 central instalada en la PC principal.
 
-**Versión 0.3.0 – Incremento del Sprint 3** (4 al 10 de noviembre de 2026):
-envío automático de cada boleta a la SUNAT con su CDR y registro de
-proveedores, sobre lo de los sprints anteriores (perfil MAESTRO, base central
-para tres terminales, catálogo con autocompletado, clientes por DNI o RUC,
-boletas con o sin DNI e impresión en la ticketera). Ver [CHANGELOG](CHANGELOG.md).
+**Versión 0.4.0 – Incremento del Sprint 4** (14 al 20 de noviembre de 2026):
+factura electrónica con RUC, reenvío automático a la SUNAT de los
+comprobantes pendientes y respaldo manual de la base de datos en un disco
+externo, sobre lo de los sprints anteriores (perfil MAESTRO, base central para
+tres terminales, catálogo con autocompletado, clientes por DNI o RUC, boletas
+con o sin DNI, impresión en la ticketera, envío a la SUNAT y proveedores).
+Ver [CHANGELOG](CHANGELOG.md).
 
 ## Estructura
 
@@ -18,15 +20,15 @@ boletas con o sin DNI e impresión en la ticketera). Ver [CHANGELOG](CHANGELOG.m
 | `src/Condor.Escritorio` | Aplicación WPF: ventanas y arranque. |
 | `src/Condor.Presentacion` | ViewModels (MVVM) sin dependencias de WPF. |
 | `src/Condor.Dominio` | Entidades, reglas (validación, IGV) y contratos. |
-| `src/Condor.Datos` | Acceso a PostgreSQL (Npgsql), migraciones y repositorios. |
+| `src/Condor.Datos` | Acceso a PostgreSQL (Npgsql), migraciones, repositorios y respaldo con pg_dump. |
 | `src/Condor.Impresion` | Ticketera térmica: comandos ESC/POS y envío directo al spooler de Windows. |
-| `src/Condor.Sunat` | Facturación electrónica: XML UBL 2.1, firma digital, envío a la SUNAT (sendBill) y lectura del CDR. |
+| `src/Condor.Sunat` | Facturación electrónica: XML UBL 2.1, firma digital, envío a la SUNAT (sendBill), lectura del CDR y reenvío de pendientes. |
 | `db/migraciones` | Scripts SQL versionados; se aplican solos al abrir el programa. |
 | `db/servidor` | Instalación de la base central en la PC principal. |
 | `db/datos` | Lista de precios para la carga inicial del catálogo. |
 | `herramientas/Condor.CargaCatalogo` | Programa de consola para la carga inicial. |
 | `tests/Condor.Pruebas` | Pruebas unitarias, de integración y de aceptación (xUnit). |
-| `docs/` | Modelo de datos, instalación, ticketera, SUNAT y pruebas. |
+| `docs/` | Modelo de datos, instalación, ticketera, SUNAT, respaldo y pruebas. |
 
 ## Puesta en marcha
 
@@ -41,8 +43,11 @@ boletas con o sin DNI e impresión en la ticketera). Ver [CHANGELOG](CHANGELOG.m
    según [docs/ticketera.md](docs/ticketera.md). Sin ticketera, el ticket se
    muestra en pantalla.
 6. **PC con internet:** completar la sección `Sunat` de `condor.json` según
-   [docs/sunat.md](docs/sunat.md) (ambiente beta en este sprint). Sin ella, los
-   comprobantes se emiten igual y quedan pendientes de envío.
+   [docs/sunat.md](docs/sunat.md) (ambiente beta). Sin ella, los comprobantes
+   se emiten igual y quedan pendientes; se reenvían solos cada
+   `ReenvioMinutos` desde la PC que sí la tiene.
+7. **PC principal:** completar la sección `Respaldo` de `condor.json` con la
+   carpeta del disco externo según [docs/respaldo.md](docs/respaldo.md).
 
 ## Atajos de la pantalla Nueva venta
 
@@ -54,8 +59,9 @@ boletas con o sin DNI e impresión en la ticketera). Ver [CHANGELOG](CHANGELOG.m
 | Alt+L | Nuevo cliente. |
 | F10 | Emitir e imprimir. |
 | F11 | Reimprimir el último ticket. |
-| F5 | Historial: últimos comprobantes, su estado ante la SUNAT y reimpresión. |
+| F5 | Historial: últimos comprobantes, su estado ante la SUNAT, reimpresión y reenvío de pendientes. |
 | F6 | Proveedores: buscar por RUC o razón social; Alt+N registra uno nuevo. |
+| F9 | Respaldo de la base de datos en el disco externo (PC principal). |
 | Esc | Cancelar la venta en curso. |
 
 ## Desarrollo
