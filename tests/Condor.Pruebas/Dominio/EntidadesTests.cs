@@ -6,6 +6,30 @@ namespace Condor.Pruebas.Dominio;
 public class EntidadesTests
 {
     [Theory]
+    [InlineData("PR01-00000004", "PR01", 4L)]
+    [InlineData("pr01-4", "PR01", 4L)]
+    [InlineData(" 4 ", null, 4L)]
+    [InlineData("00000031", null, 31L)]
+    public void Lee_el_numero_buscado_de_un_comprobante(string texto, string? serie, long numero)
+    {
+        Assert.True(Serie.IntentarLeerNumero(texto, out var leidaSerie, out var leido));
+        Assert.Equal(serie, leidaSerie);
+        Assert.Equal(numero, leido);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Constructora")]
+    [InlineData("20131312955")] // 11 dígitos: es un RUC, no un correlativo
+    [InlineData("PR01-")]
+    [InlineData("PR1-4")]
+    [InlineData("0")]
+    public void Un_texto_que_no_es_numero_de_comprobante_no_se_lee(string texto)
+    {
+        Assert.False(Serie.IntentarLeerNumero(texto, out _, out _));
+    }
+
+    [Theory]
     [InlineData("B001", 1, "B001-00000001")]
     [InlineData("F001", 123, "F001-00000123")]
     [InlineData("B002", 99999999, "B002-99999999")]

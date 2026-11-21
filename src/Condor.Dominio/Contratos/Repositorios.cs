@@ -83,6 +83,15 @@ public interface IComprobanteRepositorio
 
     /// <summary>Anota que el comprobante salió impreso (suma una impresión).</summary>
     Task RegistrarImpresionAsync(long id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Proformas (sin detalle) para convertirlas en venta (HU-09, T-71): por su
+    /// número (PR01-00000004 o solo 4), por el DNI o RUC del cliente (inicio)
+    /// o por parte de su nombre, sin distinguir mayúsculas ni tildes. Con el
+    /// texto vacío, todas. De la más reciente a la más antigua; cada una dice
+    /// si ya se convirtió y en qué comprobante.
+    /// </summary>
+    Task<IReadOnlyList<Comprobante>> ListarProformasAsync(string? texto, int limite = 100, CancellationToken ct = default);
 }
 
 /// <summary>

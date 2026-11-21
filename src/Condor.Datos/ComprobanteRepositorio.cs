@@ -211,6 +211,35 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Comprobante>> ListarProformasAsync(string? texto, int limite = 100, CancellationToken ct = default)
+    {
+        texto = texto?.Trim() ?? string.Empty;
+        var esNumero = Serie.IntentarLeerNumero(texto, out var serie, out var numero);
+
+        await using var conexion = await _conexiones.AbrirAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            $"""
+            {Cabecera}
+            WHERE s.tipo_comprobante = 'PR'
+              AND (@texto = ''
+                   OR (@numero > 0 AND c.numero = @numero AND (@serie = '' OR s.codigo = @serie))
+                   OR cl.numero_documento LIKE @texto || '%'
+                   OR texto_busqueda(cl.nombre) LIKE '%' || texto_busqueda(@texto) || '%')
+            ORDER BY c.id DESC
+            LIMIT @limite
+            """, conexion);
+        cmd.Parameters.AddWithValue("texto", ProductoRepositorio.EscaparLike(texto));
+        cmd.Parameters.AddWithValue("numero", esNumero ? numero : 0L);
+        cmd.Parameters.AddWithValue("serie", serie ?? string.Empty);
+        cmd.Parameters.AddWithValue("limite", Math.Clamp(limite, 1, 500));
+
+        var proformas = new List<Comprobante>();
+        await using var lector = await cmd.ExecuteReaderAsync(ct);
+        while (await lector.ReadAsync(ct))
+            proformas.Add(LeerCabecera(lector));
+        return proformas;
+    }
+
     /// <summary>Número completo (PR01-00000004) de un comprobante, para los mensajes de error.</summary>
     private async Task<string?> NumeroAsync(long? id)
     {
