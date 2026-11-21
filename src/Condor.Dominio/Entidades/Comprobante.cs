@@ -2,7 +2,8 @@ namespace Condor.Dominio.Entidades;
 
 /// <summary>
 /// Comprobante emitido (boleta, factura, nota de venta o proforma).
-/// Las boletas se emiten desde el Sprint 2 (HU-05).
+/// Las boletas se emiten desde el Sprint 2 (HU-05) y las notas de venta
+/// desde el Sprint 5 (HU-08).
 /// </summary>
 public sealed class Comprobante
 {
@@ -50,6 +51,12 @@ public sealed class Comprobante
     public List<DetalleComprobante> Detalle { get; } = new();
 
     public string NumeroCompleto => Serie.Formatear(SerieCodigo, Numero);
+
+    /// <summary>
+    /// Boleta o factura: comprobante electrónico que se envía a la SUNAT. La
+    /// nota de venta y la proforma son documentos internos (HU-08, HU-09).
+    /// </summary>
+    public bool EsElectronico => Entidades.TipoComprobante.EsElectronico(TipoComprobante);
 
     /// <summary>Nombre del documento tal como se imprime.</summary>
     public string NombreTipo => TipoComprobante switch

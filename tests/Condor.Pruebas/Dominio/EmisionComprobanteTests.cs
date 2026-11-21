@@ -122,4 +122,65 @@ public class EmisionComprobanteTests
         Assert.Equal(TipoComprobante.Factura, factura.TipoComprobante);
         Assert.Equal("Factura electrónica", factura.NombreTipo);
     }
+
+    // HU-08: la nota de venta es para el control interno.
+
+    [Fact]
+    public void Nota_de_venta_usa_NV01_y_no_es_comprobante_electronico()
+    {
+        var nota = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.NotaVenta, DetalleWireframe()));
+
+        Assert.Equal("NV01", nota.SerieCodigo);
+        Assert.Equal(TipoComprobante.NotaVenta, nota.TipoComprobante);
+        Assert.Equal("Nota de venta", nota.NombreTipo);
+        Assert.False(nota.EsElectronico);
+        Assert.Equal(745.00m, nota.Total);
+        Assert.Equal(nota.Total, nota.OpGravada + nota.Igv);
+    }
+
+    [Fact]
+    public void Nota_de_venta_de_mas_de_700_soles_no_pide_DNI()
+    {
+        // La regla de los S/ 700 es de la boleta (SUNAT); la nota de venta no va a la SUNAT.
+        Assert.Empty(EmisionComprobante.Errores(new SolicitudEmision(TipoEmision.NotaVenta, DetalleWireframe())));
+    }
+
+    [Fact]
+    public void Nota_de_venta_puede_llevar_cliente_con_DNI_o_con_RUC()
+    {
+        var conDni = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.NotaVenta, DetalleWireframe(), ConDni()));
+        var conRuc = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.NotaVenta, DetalleWireframe(), ConRuc()));
+
+        Assert.Equal(7, conDni.ClienteId);
+        Assert.Equal(8, conRuc.ClienteId);
+        Assert.All(new[] { conDni, conRuc }, n => Assert.Equal("NV01", n.SerieCodigo));
+    }
+
+    [Fact]
+    public void Nota_de_venta_con_un_cliente_no_registrado_pide_registrarlo()
+    {
+        var errores = EmisionComprobante.Errores(new SolicitudEmision(TipoEmision.NotaVenta, DetalleWireframe(), ConDni(id: 0)));
+
+        var error = Assert.Single(errores);
+        Assert.Equal(CampoEmision.Documento, error.Campo);
+        Assert.Contains("Nuevo cliente", error.Mensaje);
+    }
+
+    [Fact]
+    public void Nota_de_venta_sin_productos_no_se_emite()
+    {
+        var errores = EmisionComprobante.Errores(new SolicitudEmision(TipoEmision.NotaVenta, new List<DetalleComprobante>()));
+
+        Assert.Equal(CampoEmision.Detalle, Assert.Single(errores).Campo);
+    }
+
+    [Theory]
+    [InlineData(TipoComprobante.Boleta, true)]
+    [InlineData(TipoComprobante.Factura, true)]
+    [InlineData(TipoComprobante.NotaVenta, false)]
+    [InlineData(TipoComprobante.Proforma, false)]
+    public void Solo_la_boleta_y_la_factura_van_a_la_SUNAT(string tipo, bool electronico)
+    {
+        Assert.Equal(electronico, new Comprobante { TipoComprobante = tipo }.EsElectronico);
+    }
 }

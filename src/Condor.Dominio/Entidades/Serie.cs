@@ -9,6 +9,9 @@ public static class TipoComprobante
     public const string Boleta = "03";
     public const string NotaVenta = "NV";
     public const string Proforma = "PR";
+
+    /// <summary>True para la boleta y la factura, las únicas que van a la SUNAT.</summary>
+    public static bool EsElectronico(string tipo) => tipo is Factura or Boleta;
 }
 
 /// <summary>

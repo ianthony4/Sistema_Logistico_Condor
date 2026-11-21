@@ -14,6 +14,12 @@ public enum TipoEmision
 
     /// <summary>Factura con RUC (HU-06, Sprint 4).</summary>
     Factura,
+
+    /// <summary>
+    /// Nota de venta para el control interno (HU-08, Sprint 5): serie NV01,
+    /// no es comprobante electrónico y no se envía a la SUNAT.
+    /// </summary>
+    NotaVenta,
 }
 
 /// <summary>Campo de la pantalla al que apunta un error, para señalarlo.</summary>
@@ -31,12 +37,14 @@ public sealed record SolicitudEmision(TipoEmision Tipo, IReadOnlyList<DetalleCom
 /// <summary>
 /// Reglas para emitir un comprobante (HU-05, T-27): qué serie usa, qué
 /// cliente exige y cómo se arman sus líneas y totales. No toca la base de
-/// datos: el número correlativo lo asigna el repositorio al guardar.
+/// datos: el número correlativo lo asigna el repositorio al guardar. Desde
+/// el Sprint 5 emite también la nota de venta (HU-08, T-66).
 /// </summary>
 public static class EmisionComprobante
 {
     public const string SerieBoleta = "B001";
     public const string SerieFactura = "F001";
+    public const string SerieNotaVenta = "NV01";
 
     /// <summary>
     /// Si la boleta supera este importe, la SUNAT exige identificar al comprador
@@ -45,10 +53,20 @@ public static class EmisionComprobante
     /// </summary>
     public const decimal MontoBoletaIdentificada = 700m;
 
-    public static string SerieDe(TipoEmision tipo) => tipo == TipoEmision.Factura ? SerieFactura : SerieBoleta;
+    public static string SerieDe(TipoEmision tipo) => tipo switch
+    {
+        TipoEmision.Factura => SerieFactura,
+        TipoEmision.NotaVenta => SerieNotaVenta,
+        _ => SerieBoleta,
+    };
 
-    public static string TipoSunatDe(TipoEmision tipo) =>
-        tipo == TipoEmision.Factura ? TipoComprobante.Factura : TipoComprobante.Boleta;
+    /// <summary>Código del tipo de comprobante: 01 o 03 del catálogo de la SUNAT, o NV.</summary>
+    public static string TipoSunatDe(TipoEmision tipo) => tipo switch
+    {
+        TipoEmision.Factura => TipoComprobante.Factura,
+        TipoEmision.NotaVenta => TipoComprobante.NotaVenta,
+        _ => TipoComprobante.Boleta,
+    };
 
     /// <summary>Errores que impiden emitir; vacía si se puede emitir.</summary>
     public static IReadOnlyList<ErrorEmision> Errores(SolicitudEmision solicitud)
@@ -83,6 +101,13 @@ public static class EmisionComprobante
                         $"Las boletas de más de S/ {MontoBoletaIdentificada:0.00} deben llevar el DNI del cliente: elija Boleta con DNI."));
                 else if (cliente is { Id: <= 0 })
                     errores.Add(new(CampoEmision.Documento, "Registre al cliente con + Nuevo cliente o quítelo de la venta."));
+                break;
+
+            case TipoEmision.NotaVenta:
+                // HU-08: documento interno; el cliente es opcional y no hay
+                // tope de importe porque no va a la SUNAT.
+                if (cliente is { Id: <= 0 })
+                    errores.Add(new(CampoEmision.Documento, "Registre al cliente con + Nuevo cliente o quítelo de la nota de venta."));
                 break;
         }
 
