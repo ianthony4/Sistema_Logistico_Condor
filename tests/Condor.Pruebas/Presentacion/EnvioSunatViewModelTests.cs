@@ -57,6 +57,22 @@ public class EnvioSunatViewModelTests
     }
 
     [Fact]
+    public async Task La_nota_de_venta_se_imprime_pero_no_se_envia_a_la_SUNAT()
+    {
+        var (vm, sunat, registro, ticketera) = Crear();
+        vm.Emision!.EsNotaVenta = true;
+
+        var nota = await EmitirAsync(vm);
+        await vm.UltimoEnvioSunat;
+
+        Assert.Equal(TipoComprobante.NotaVenta, nota.TipoComprobante);
+        Assert.Empty(sunat.Enviados);
+        Assert.Empty(registro.Intentos);
+        Assert.Null(vm.EnvioSunat!.Mensaje);
+        Assert.Contains("NOTA DE VENTA", Assert.Single(ticketera.Impresos).ComoTexto());
+    }
+
+    [Fact]
     public async Task Un_rechazo_se_muestra_con_su_codigo_y_motivo()
     {
         var (vm, sunat, registro, _) = Crear();

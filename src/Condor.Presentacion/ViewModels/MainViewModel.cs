@@ -283,7 +283,8 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>
     /// Comprobante guardado: la pantalla queda lista para la siguiente venta
     /// mientras sale el ticket (HU-12) y se envía a la SUNAT (HU-07). Las dos
-    /// cosas van en paralelo: sin internet el ticket sale igual.
+    /// cosas van en paralelo: sin internet el ticket sale igual. La nota de
+    /// venta es interna: se imprime pero no se envía (HU-08).
     /// </summary>
     private void AlEmitir(Comprobante comprobante)
     {
@@ -292,7 +293,7 @@ public sealed class MainViewModel : ObservableObject
         Cliente?.Limpiar();
         Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida. Total S/ {comprobante.Total:0.00}.";
         UltimaImpresion = ImprimirAsync(comprobante);
-        if (EnvioSunat is not null)
+        if (EnvioSunat is not null && comprobante.EsElectronico)
             UltimoEnvioSunat = EnviarSunatAsync(comprobante);
     }
 
