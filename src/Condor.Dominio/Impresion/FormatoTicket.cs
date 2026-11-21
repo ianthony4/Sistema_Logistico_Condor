@@ -8,12 +8,17 @@ namespace Condor.Dominio.Impresion;
 /// Arma el ticket de 80 mm de un comprobante (HU-12, T-31): RUC y datos de la
 /// ferretería, tipo y número, fecha, cliente, detalle, op. gravada, IGV,
 /// total y el importe en letras. La factura lleva además la razón social, el
-/// RUC y la dirección del cliente y la forma de pago (HU-06, T-52).
+/// RUC y la dirección del cliente y la forma de pago (HU-06, T-52). La nota
+/// de venta solo lleva el total y avisa que es un documento interno (HU-08, T-67).
 /// </summary>
 public static class FormatoTicket
 {
     /// <summary>Ancho de un papel de 80 mm con la fuente normal de la ticketera (fuente A).</summary>
     public const int ColumnasPorDefecto = 48;
+
+    /// <summary>Leyenda de la nota de venta: no sirve como comprobante de pago ante la SUNAT.</summary>
+    public const string LeyendaNotaVenta =
+        "Documento interno de control. No es comprobante de pago: si necesita boleta o factura, pídala en caja.";
 
     /// <summary>Perú no cambia de hora en el año: la hora del ticket es siempre UTC-5.</summary>
     private static readonly TimeSpan HoraPeru = TimeSpan.FromHours(-5);
@@ -81,17 +86,23 @@ public static class FormatoTicket
         }
         Separador(t, '-');
 
-        // Totales, alineados a la derecha.
-        t.Lineas.Add(new(Total("OP. GRAVADA", comprobante.OpGravada), Alineacion.Derecha));
-        t.Lineas.Add(new(Total($"IGV {CalculadoraVenta.TasaIgv * 100:0}%", comprobante.Igv), Alineacion.Derecha));
+        // Totales, alineados a la derecha. La nota de venta no es un documento
+        // tributario: no desglosa el IGV, solo el total cobrado.
+        if (comprobante.TipoComprobante != TipoComprobante.NotaVenta)
+        {
+            t.Lineas.Add(new(Total("OP. GRAVADA", comprobante.OpGravada), Alineacion.Derecha));
+            t.Lineas.Add(new(Total($"IGV {CalculadoraVenta.TasaIgv * 100:0}%", comprobante.Igv), Alineacion.Derecha));
+        }
         t.Lineas.Add(new(Total("TOTAL", comprobante.Total), Alineacion.Derecha, Negrita: true));
         Separador(t, '-');
         Agregar(t, $"SON: {MontoEnLetras.Soles(comprobante.Total)}");
         Separador(t, '=');
 
         // Pie.
-        if (comprobante.TipoComprobante is TipoComprobante.Boleta or TipoComprobante.Factura)
+        if (comprobante.EsElectronico)
             Agregar(t, $"Representación impresa de la {comprobante.NombreTipo}.", Alineacion.Centro);
+        else if (comprobante.TipoComprobante == TipoComprobante.NotaVenta)
+            Agregar(t, LeyendaNotaVenta, Alineacion.Centro, negrita: true);
         t.Lineas.Add(new("¡Gracias por su compra!", Alineacion.Centro, Negrita: true));
         return t;
     }
