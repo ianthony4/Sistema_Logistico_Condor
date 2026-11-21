@@ -587,16 +587,20 @@
                     <StackPanel>
                         <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="26" Margin="0,0,0,12" />
 
-                        <!-- Tipo de comprobante (HU-05, T-29) y factura con RUC (HU-06, T-51). -->
-                        <UniformGrid Columns="3" Margin="0,0,0,16" DataContext="{Binding Emision}"
+                        <!-- Tipo de comprobante (HU-05, T-29), factura con RUC (HU-06, T-51)
+                             y nota de venta para el control interno (HU-08, T-68). -->
+                        <UniformGrid Columns="3" Margin="0,0,0,10" DataContext="{Binding Emision}"
                                      Visibility="{Binding Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
-                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante" Margin="0,0,0,6"
                                          Content="Boleta" IsChecked="{Binding EsBoleta}" ToolTip="Boleta sin DNI (hasta S/ 700.00)." />
-                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante" Margin="0,0,0,6"
                                          Content="Con DNI" IsChecked="{Binding EsBoletaConDni}" ToolTip="Boleta con el DNI del cliente." />
-                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante" Margin="0,0,0,6"
                                          Content="Factura" IsChecked="{Binding EsFactura}"
                                          ToolTip="Factura con el RUC del cliente (serie F001)." />
+                            <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante" Margin="0,0,0,6"
+                                         Content="Nota venta" IsChecked="{Binding EsNotaVenta}"
+                                         ToolTip="Nota de venta para el control interno (serie NV01). No se envía a la SUNAT." />
                         </UniformGrid>
 
                         <DockPanel Margin="0,0,6,12">

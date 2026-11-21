@@ -9,7 +9,8 @@ namespace Condor.Presentacion.ViewModels;
 /// Tipo de comprobante y botón Emitir e imprimir (F10) del resumen de venta
 /// (HU-05, T-29). Valida con las reglas del dominio, guarda en la base central
 /// con el siguiente correlativo y avisa para imprimir el ticket. Desde el
-/// Sprint 4 también emite la factura con RUC en la serie F001 (HU-06, T-51).
+/// Sprint 4 también emite la factura con RUC en la serie F001 (HU-06, T-51)
+/// y desde el Sprint 5 la nota de venta NV01 (HU-08, T-68).
 /// </summary>
 public sealed class EmisionViewModel : ObservableObject
 {
@@ -56,6 +57,7 @@ public sealed class EmisionViewModel : ObservableObject
             OnPropertyChanged(nameof(EsBoleta));
             OnPropertyChanged(nameof(EsBoletaConDni));
             OnPropertyChanged(nameof(EsFactura));
+            OnPropertyChanged(nameof(EsNotaVenta));
             Error = null;
 
             // HU-06: con la factura, el panel Cliente pide el RUC y recibe el foco.
@@ -94,6 +96,17 @@ public sealed class EmisionViewModel : ObservableObject
         {
             if (value)
                 Tipo = TipoEmision.Factura;
+        }
+    }
+
+    /// <summary>Nota de venta para el control interno, serie NV01; no va a la SUNAT (HU-08, T-68).</summary>
+    public bool EsNotaVenta
+    {
+        get => Tipo == TipoEmision.NotaVenta;
+        set
+        {
+            if (value)
+                Tipo = TipoEmision.NotaVenta;
         }
     }
 

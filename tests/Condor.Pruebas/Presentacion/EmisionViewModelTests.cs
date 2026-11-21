@@ -248,4 +248,72 @@ public class EmisionViewModelTests
         Assert.Equal(new[] { "B001-00000001", "F001-00000001", "B001-00000002" },
             comprobantes.Comprobantes.Select(c => c.NumeroCompleto));
     }
+
+    // HU-08: nota de venta (T-68).
+
+    [Fact]
+    public async Task Nota_de_venta_sale_con_la_serie_NV01_sin_pedir_documento()
+    {
+        var (vm, comprobantes) = Crear();
+        await AgregarAsync(vm, "cemento", "30"); // S/ 975.00: más de S/ 700, sin DNI
+        vm.Emision!.EsNotaVenta = true;
+
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        var nota = Assert.Single(comprobantes.Comprobantes);
+        Assert.Null(vm.Emision.Error);
+        Assert.Equal("NV01-00000001", nota.NumeroCompleto);
+        Assert.Equal(TipoComprobante.NotaVenta, nota.TipoComprobante);
+        Assert.Null(nota.Cliente);
+        Assert.Contains("Nota de venta NV01-00000001 emitida", vm.Mensaje);
+        Assert.True(vm.Emision.EsBoleta); // la siguiente venta vuelve a Boleta
+    }
+
+    [Fact]
+    public async Task Nota_de_venta_lleva_al_cliente_buscado()
+    {
+        var (vm, comprobantes) = Crear();
+        await AgregarAsync(vm, "fierro", "2");
+        vm.Cliente!.Documento = "20131312955";
+        await vm.Cliente.BuscarCommand.EjecutarAsync();
+        vm.Emision!.EsNotaVenta = true;
+
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        Assert.Equal("20131312955", Assert.Single(comprobantes.Comprobantes).Cliente!.NumeroDocumento);
+    }
+
+    [Fact]
+    public void Elegir_Nota_de_venta_no_pide_el_RUC()
+    {
+        var (vm, _) = Crear();
+        var pedidos = 0;
+        vm.Emision!.RucRequerido += () => pedidos++;
+        vm.Emision.EsFactura = true;
+
+        vm.Emision.EsNotaVenta = true;
+
+        Assert.Equal(TipoEmision.NotaVenta, vm.Emision.Tipo);
+        Assert.False(vm.Emision.EsFactura);
+        Assert.False(vm.Cliente!.ExigeRuc);
+        Assert.Equal(1, pedidos); // solo al elegir Factura
+    }
+
+    [Fact]
+    public async Task Las_notas_de_venta_llevan_su_propia_numeracion()
+    {
+        var (vm, comprobantes) = Crear();
+
+        await AgregarAsync(vm, "clavo", "1");
+        await vm.Emision!.EmitirCommand.EjecutarAsync();
+        await AgregarAsync(vm, "clavo", "1");
+        vm.Emision.EsNotaVenta = true;
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+        await AgregarAsync(vm, "clavo", "1");
+        vm.Emision.EsNotaVenta = true;
+        await vm.Emision.EmitirCommand.EjecutarAsync();
+
+        Assert.Equal(new[] { "B001-00000001", "NV01-00000001", "NV01-00000002" },
+            comprobantes.Comprobantes.Select(c => c.NumeroCompleto));
+    }
 }
