@@ -102,6 +102,36 @@ public interface IEnvioSunatRepositorio
 
     /// <summary>Boletas y facturas aún pendientes de envío, de la más antigua a la más reciente (HU-17).</summary>
     Task<IReadOnlyList<long>> ListarPendientesAsync(int limite = 100, CancellationToken ct = default);
+
+    /// <summary>
+    /// Aparta para esta PC los pendientes que toca reenviar (HU-17, T-55): los
+    /// emitidos hace más de <paramref name="espera"/> cuyo último intento
+    /// también pasó la espera (más larga cuantos más intentos lleva) y que
+    /// ninguna otra PC está reenviando. Devuelve sus Id, del más antiguo al
+    /// más reciente. La reserva se libera al registrar la respuesta o la falla.
+    /// </summary>
+    Task<IReadOnlyList<long>> ReservarPendientesAsync(string terminal, TimeSpan espera, int limite = 20, CancellationToken ct = default);
+
+    /// <summary>Devuelve los apartados que esta PC no llegó a enviar (se cortó internet), sin sumar intentos.</summary>
+    Task LiberarAsync(string terminal, IReadOnlyCollection<long> comprobanteIds, CancellationToken ct = default);
+
+    /// <summary>Cuántas boletas y facturas siguen pendientes y desde cuándo (para el aviso de la pantalla).</summary>
+    Task<ResumenPendientes> ResumenPendientesAsync(CancellationToken ct = default);
+}
+
+/// <summary>
+/// Respaldos manuales de la base de datos (HU-15). Lo implementa Condor.Datos.
+/// </summary>
+public interface IRespaldoRepositorio
+{
+    /// <summary>Anota un respaldo ya generado y lo devuelve con su Id.</summary>
+    Task<Respaldo> RegistrarAsync(Respaldo respaldo, CancellationToken ct = default);
+
+    /// <summary>El respaldo más reciente, hecho desde cualquier PC; null si nunca se hizo uno.</summary>
+    Task<Respaldo?> UltimoAsync(CancellationToken ct = default);
+
+    /// <summary>Últimos respaldos, del más reciente al más antiguo.</summary>
+    Task<IReadOnlyList<Respaldo>> ListarAsync(int limite = 10, CancellationToken ct = default);
 }
 
 /// <summary>

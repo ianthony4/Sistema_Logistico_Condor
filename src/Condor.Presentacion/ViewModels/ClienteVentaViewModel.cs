@@ -18,6 +18,7 @@ public sealed class ClienteVentaViewModel : ObservableObject
     private string? _error;
     private bool _noEncontrado;
     private bool _asignando;
+    private bool _exigeRuc;
 
     public ClienteVentaViewModel(IClienteRepositorio clientes)
     {
@@ -87,6 +88,34 @@ public sealed class ClienteVentaViewModel : ObservableObject
     /// <summary>Tipo que corresponde a lo digitado (8 dígitos DNI, 11 RUC); null si aún no es ninguno.</summary>
     public TipoDocumento? TipoDigitado => ValidadorDocumento.TipoSegunLargo(Documento);
 
+    /// <summary>La venta es una factura (HU-06): el campo pide solo el RUC.</summary>
+    public bool ExigeRuc
+    {
+        get => _exigeRuc;
+        private set
+        {
+            if (SetProperty(ref _exigeRuc, value))
+                OnPropertyChanged(nameof(EtiquetaDocumento));
+        }
+    }
+
+    /// <summary>Rótulo del campo; la letra tras "_" es la tecla Alt.</summary>
+    public string EtiquetaDocumento => ExigeRuc ? "_RUC del cliente (factura)" : "_DNI o RUC";
+
+    /// <summary>
+    /// La emisión avisa que se eligió Factura (true) o Boleta (false). Con la
+    /// factura, si el cliente elegido no tiene RUC se pide (HU-06, criterio 2).
+    /// </summary>
+    public void ExigirRuc(bool exigir)
+    {
+        if (ExigeRuc == exigir)
+            return;
+        ExigeRuc = exigir;
+        Error = exigir && Seleccionado is not null && Seleccionado.TipoDocumento != TipoDocumento.Ruc
+            ? "La factura requiere un cliente con RUC: digítelo y presione Buscar."
+            : null;
+    }
+
     public AsyncRelayCommand BuscarCommand { get; }
 
     public RelayCommand QuitarCommand { get; }
@@ -127,7 +156,14 @@ public sealed class ClienteVentaViewModel : ObservableObject
 
         if (tipo is null)
         {
-            Error = "Digite un DNI (8 dígitos) o un RUC (11 dígitos).";
+            Error = ExigeRuc ? "Digite el RUC del cliente (11 dígitos)." : "Digite un DNI (8 dígitos) o un RUC (11 dígitos).";
+            return;
+        }
+
+        // HU-06: la factura no se emite a un DNI; se avisa antes de buscarlo.
+        if (ExigeRuc && tipo == TipoDocumento.Dni)
+        {
+            Error = "La factura requiere el RUC del cliente (11 dígitos). Con DNI, elija Boleta o Con DNI.";
             return;
         }
 

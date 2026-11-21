@@ -31,7 +31,15 @@ public partial class MainWindow : Window
                 return;
             vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
             if (vm.Emision is not null)
+            {
                 vm.Emision.Emitido += _ => CampoProducto.Focus();
+                // HU-06: al elegir Factura sin cliente con RUC, el cursor va al campo DNI o RUC.
+                vm.Emision.RucRequerido += () =>
+                {
+                    CampoDocumento.Focus();
+                    CampoDocumento.SelectAll();
+                };
+            }
         };
     }
 
@@ -94,6 +102,21 @@ public partial class MainWindow : Window
         }
 
         new ComprobantesRecientesWindow(vm) { Owner = this }.ShowDialog();
+        CampoProducto.Focus();
+    }
+
+    // Respaldo (F9, HU-15, T-62): en la PC principal genera el respaldo en el
+    // disco externo; en las demás muestra cuándo fue el último.
+    private void Respaldo_Click(object sender, RoutedEventArgs e)
+    {
+        var vm = Vm?.CrearRespaldo();
+        if (vm is null)
+        {
+            Vm?.ModuloPendienteCommand.Execute("Respaldo");
+            return;
+        }
+
+        new RespaldoWindow(vm) { Owner = this }.ShowDialog();
         CampoProducto.Focus();
     }
 
@@ -237,6 +260,11 @@ public partial class MainWindow : Window
         else if (tecla == Key.F6)
         {
             Proveedores_Click(sender, e);
+            e.Handled = true;
+        }
+        else if (tecla == Key.F9)
+        {
+            Respaldo_Click(sender, e);
             e.Handled = true;
         }
     }

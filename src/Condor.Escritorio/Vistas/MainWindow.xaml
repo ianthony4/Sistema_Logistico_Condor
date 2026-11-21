@@ -18,7 +18,6 @@
         <KeyBinding Key="F3" Command="{Binding ModuloPendienteCommand}" CommandParameter="Clientes" />
         <KeyBinding Key="F4" Command="{Binding ModuloPendienteCommand}" CommandParameter="Compras" />
         <KeyBinding Key="F11" Command="{Binding Impresion.ReimprimirCommand}" />
-        <KeyBinding Key="F9" Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo" />
     </Window.InputBindings>
 
     <Grid>
@@ -117,7 +116,7 @@
                     </DockPanel>
                 </Button>
                 <Button Style="{StaticResource BotonMenu}" Tag="&#xE753;" Focusable="False"
-                        Command="{Binding ModuloPendienteCommand}" CommandParameter="Respaldo">
+                        Click="Respaldo_Click" ToolTip="Respaldo de la base de datos en el disco externo de la PC principal.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F9" />
                         <TextBlock Text="Respaldo" />
@@ -148,6 +147,24 @@
                         <TextBlock Text="{Binding Terminal}" Margin="0,0,20,0" />
                         <TextBlock Text="{Binding EnvioSunat.Ambiente}" Margin="0,0,20,0" Foreground="{StaticResource TextoSuave}"
                                    ToolTip="Envío de comprobantes a la SUNAT (HU-07)." />
+
+                        <!-- Pendientes de envío a la SUNAT (HU-17, T-58): se reenvían solos;
+                             en rojo si el más antiguo está por vencer el plazo de 3 días. -->
+                        <TextBlock DataContext="{Binding ReenvioSunat}" Text="{Binding Aviso}" ToolTip="{Binding Detalle}"
+                                   Margin="0,0,20,0" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="460"
+                                   Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource Acento}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PorVencer}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource Error}" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
 
                         <!-- Indicador de conexión (T-06). -->
                         <StackPanel Orientation="Horizontal" DataContext="{Binding Conexion}">
@@ -203,8 +220,9 @@
                     <TextBlock x:Name="Hora" FontSize="15" />
                 </StackPanel>
 
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="3">
                 <!-- Aviso de pérdida de conexión (T-06): no borra nada de la pantalla. -->
-                <Border Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
+                <Border Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
                         Background="{StaticResource ErrorSuave}" BorderBrush="#E8B9AE" BorderThickness="1"
                         DataContext="{Binding Conexion}"
                         Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
@@ -216,6 +234,28 @@
                                    Foreground="{StaticResource Error}" FontWeight="SemiBold" />
                     </DockPanel>
                 </Border>
+
+                <!-- Respaldo vencido (HU-15, criterio 2; T-63): más de 24 horas sin respaldo. -->
+                <Border Margin="0,14,0,0" Padding="16,10" CornerRadius="5"
+                        Background="{StaticResource AcentoSuave}" BorderBrush="{StaticResource Acento}" BorderThickness="1"
+                        DataContext="{Binding AvisoRespaldo}"
+                        Visibility="{Binding Aviso, Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Más _tarde" Height="34" Margin="10,0,0,0"
+                                Command="{Binding DescartarCommand}" />
+                        <Button DockPanel.Dock="Right" Height="34" Padding="12,0" Click="Respaldo_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE753;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                                <TextBlock Text="Respaldo (F9)" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE753;" Style="{StaticResource Icono}" Foreground="{StaticResource Acento}"
+                                   Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding Aviso}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
+                                   Foreground="{StaticResource Acento}" FontWeight="SemiBold" />
+                    </DockPanel>
+                </Border>
+                </StackPanel>
 
                 <!-- Línea tenue bajo el título. -->
                 <Border Grid.Row="2" Height="1" Background="{StaticResource Borde}" VerticalAlignment="Top" Margin="0,14,0,0" />
@@ -446,7 +486,7 @@
                             <TextBlock Text="Cliente" Style="{StaticResource TituloSerif}" FontSize="22" />
                         </DockPanel>
 
-                        <Label Content="_DNI o RUC" Target="{Binding ElementName=CampoDocumento}" FontSize="13" Padding="0,0,0,4" />
+                        <Label Content="{Binding EtiquetaDocumento}" Target="{Binding ElementName=CampoDocumento}" FontSize="13" Padding="0,0,0,4" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -547,7 +587,7 @@
                     <StackPanel>
                         <TextBlock Text="Resumen de venta" Style="{StaticResource TituloSerif}" FontSize="26" Margin="0,0,0,12" />
 
-                        <!-- Tipo de comprobante (HU-05, T-29). La factura llega con HU-06. -->
+                        <!-- Tipo de comprobante (HU-05, T-29) y factura con RUC (HU-06, T-51). -->
                         <UniformGrid Columns="3" Margin="0,0,0,16" DataContext="{Binding Emision}"
                                      Visibility="{Binding Converter={StaticResource NuloAOculto}, FallbackValue=Collapsed}">
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
@@ -555,8 +595,8 @@
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
                                          Content="Con DNI" IsChecked="{Binding EsBoletaConDni}" ToolTip="Boleta con el DNI del cliente." />
                             <RadioButton Style="{StaticResource OpcionComprobante}" GroupName="TipoComprobante"
-                                         Content="Factura" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
-                                         ToolTip="La factura con RUC se habilita con HU-06 (Sprint 4)." />
+                                         Content="Factura" IsChecked="{Binding EsFactura}"
+                                         ToolTip="Factura con el RUC del cliente (serie F001)." />
                         </UniformGrid>
 
                         <DockPanel Margin="0,0,6,12">
@@ -634,7 +674,7 @@
                         </DockPanel>
                     </Border>
 
-                    <!-- Emite la boleta con el siguiente número de B001 (HU-05, T-29). -->
+                    <!-- Emite la boleta (B001) o la factura (F001) con el siguiente número (HU-05, HU-06). -->
                     <Button Style="{StaticResource BotonEmitir}" Height="64" FontSize="19"
                             Command="{Binding Emision.EmitirCommand}" ToolTipService.ShowOnDisabled="True"
                             ToolTip="Guarda el comprobante en la base central e imprime el ticket (F10).">
