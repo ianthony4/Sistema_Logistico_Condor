@@ -259,6 +259,52 @@ public class ComprobanteRepositorioTests
         Assert.Equal("ck_proforma", ex.ConstraintName);
     }
 
+    [FactConBD]
+    public async Task Las_proformas_se_buscan_por_cliente_por_documento_o_por_numero()
+    {
+        var serie = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var clientes = new ClienteRepositorio(_bd.Conexiones);
+        var constructora = DatosPrueba.ClienteRuc(DatosPrueba.RucNuevo());
+        constructora.Nombre = DatosPrueba.NombreUnico("Constructora Ñaña");
+        constructora = await clientes.RegistrarAsync(constructora);
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var deObra = await ProformaAsync(serie);
+        deObra.Cliente = constructora;
+        deObra.ClienteId = constructora.Id;
+        deObra = await repo.EmitirAsync(deObra);
+        var sinCliente = await repo.EmitirAsync(await ProformaAsync(serie));
+        var boleta = await repo.EmitirAsync(await BoletaAsync(await CrearSerieBoletaAsync()));
+
+        var porNombre = await repo.ListarProformasAsync(constructora.Nombre[..18].ToLowerInvariant().Replace("ñ", "n"));
+        var porRuc = await repo.ListarProformasAsync(constructora.NumeroDocumento[..6]);
+        var porNumero = await repo.ListarProformasAsync($"{serie}-2");
+        var todas = await repo.ListarProformasAsync(null, 500);
+
+        Assert.Contains(porNombre, p => p.Id == deObra.Id);
+        Assert.DoesNotContain(porNombre, p => p.Id == sinCliente.Id);
+        Assert.Contains(porRuc, p => p.Id == deObra.Id);
+        Assert.Equal(sinCliente.Id, Assert.Single(porNumero).Id);
+        Assert.All(todas, p => Assert.Equal(TipoComprobante.Proforma, p.TipoComprobante));
+        Assert.DoesNotContain(todas, p => p.Id == boleta.Id);
+        Assert.True(todas.ToList().FindIndex(p => p.Id == sinCliente.Id) < todas.ToList().FindIndex(p => p.Id == deObra.Id));
+        Assert.Empty(porNombre[0].Detalle);
+    }
+
+    [FactConBD]
+    public async Task La_lista_de_proformas_dice_en_que_comprobante_se_convirtio_cada_una()
+    {
+        var serieProforma = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var proforma = await repo.EmitirAsync(await ProformaAsync(serieProforma));
+        var boleta = await repo.EmitirAsync(await ConversionAsync(serieBoleta, proforma));
+
+        var listada = Assert.Single(await repo.ListarProformasAsync($"{serieProforma}-{proforma.Numero}"));
+
+        Assert.Equal(boleta.NumeroCompleto, listada.ConvertidaEn);
+        Assert.Equal(proforma.ValidaHasta, listada.ValidaHasta);
+    }
+
     /// <summary>Proforma preparada por el dominio con los productos de la boleta de prueba.</summary>
     private async Task<Comprobante> ProformaAsync(string serie)
     {

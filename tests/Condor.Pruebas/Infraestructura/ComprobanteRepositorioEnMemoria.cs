@@ -48,6 +48,22 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepositorio
     public Task<IReadOnlyList<Comprobante>> ListarRecientesAsync(int limite = 30, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Comprobante>>(_comprobantes.OrderByDescending(c => c.Id).Take(limite).ToList());
 
+    public Task<IReadOnlyList<Comprobante>> ListarProformasAsync(string? texto, int limite = 100, CancellationToken ct = default)
+    {
+        texto = texto?.Trim() ?? string.Empty;
+        var esNumero = Serie.IntentarLeerNumero(texto, out var serie, out var numero);
+        IReadOnlyList<Comprobante> proformas = _comprobantes
+            .Where(c => c.TipoComprobante == TipoComprobante.Proforma)
+            .Where(c => texto.Length == 0
+                        || (esNumero && c.Numero == numero && (serie is null || c.SerieCodigo == serie))
+                        || (c.Cliente?.NumeroDocumento.StartsWith(texto, StringComparison.Ordinal) ?? false)
+                        || (c.Cliente?.Nombre.Contains(texto, StringComparison.CurrentCultureIgnoreCase) ?? false))
+            .OrderByDescending(c => c.Id)
+            .Take(limite)
+            .ToList();
+        return Task.FromResult(proformas);
+    }
+
     /// <summary>Impresiones anotadas por comprobante. Como la base real, no toca el objeto en memoria.</summary>
     public Dictionary<long, int> ImpresionesRegistradas { get; } = new();
 
