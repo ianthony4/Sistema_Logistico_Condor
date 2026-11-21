@@ -202,6 +202,65 @@ public class FormatoTicketTests
         Assert.EndsWith("92.40", linea.Texto);
     }
 
+    // HU-08: la nota de venta (T-67).
+
+    private static Comprobante NotaVenta(Cliente? cliente = null)
+    {
+        var boleta = Boleta();
+        var nota = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.NotaVenta, boleta.Detalle, cliente));
+        nota.Numero = 7;
+        nota.Fecha = boleta.Fecha;
+        nota.TerminalNombre = boleta.TerminalNombre;
+        return nota;
+    }
+
+    [Fact]
+    public void La_nota_de_venta_lleva_su_numero_el_total_y_la_leyenda_de_documento_interno()
+    {
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), NotaVenta()).ComoTexto();
+
+        Assert.Contains("NOTA DE VENTA", texto);
+        Assert.Contains("NV01-00000007", texto);
+        Assert.Contains("TOTAL        S/      182.90", texto);
+        Assert.Contains("SON: CIENTO OCHENTA Y DOS CON 90/100 SOLES", texto);
+        // La leyenda ocupa varias líneas del papel.
+        Assert.Contains("Documento interno de control.", texto);
+        Assert.Contains("No es comprobante de pago", string.Join(" ", texto.Split(Environment.NewLine, StringSplitOptions.TrimEntries)));
+    }
+
+    [Fact]
+    public void La_nota_de_venta_no_desglosa_el_IGV_ni_dice_ser_representacion_impresa()
+    {
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), NotaVenta()).ComoTexto();
+
+        Assert.DoesNotContain("OP. GRAVADA", texto);
+        Assert.DoesNotContain("IGV", texto);
+        Assert.DoesNotContain("Representación impresa", texto);
+        Assert.DoesNotContain("ELECTRÓNICA", texto);
+    }
+
+    [Fact]
+    public void La_nota_de_venta_con_cliente_imprime_su_nombre()
+    {
+        var cliente = DatosPrueba.ClienteDni();
+        cliente.Id = 5;
+
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), NotaVenta(cliente)).ComoTexto();
+
+        Assert.Contains("Cliente: Juan Pérez Quispe", texto);
+        Assert.Contains("DNI: 45879632", texto);
+    }
+
+    [Theory]
+    [InlineData(32)]
+    [InlineData(48)]
+    public void La_leyenda_de_la_nota_de_venta_no_pasa_del_ancho(int columnas)
+    {
+        var ticket = FormatoTicket.Generar(DatosPrueba.Empresa(), NotaVenta(), columnas);
+
+        Assert.All(ticket.Lineas, l => Assert.True(l.Texto.Length <= columnas, $"{l.Texto.Length} > {columnas}: {l.Texto}"));
+    }
+
     [Theory]
     [InlineData("uno dos tres", 7, new[] { "uno dos", "tres" })]
     [InlineData("abcdefghij", 4, new[] { "abcd", "efgh", "ij" })]
