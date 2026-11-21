@@ -141,6 +141,156 @@ public class ComprobanteRepositorioTests
         Assert.Empty(reciente.Detalle);
     }
 
+    // HU-09: proformas (V011, T-70).
+
+    [FactConBD]
+    public async Task La_proforma_se_guarda_con_su_vigencia_de_7_dias()
+    {
+        var serie = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+
+        var proforma = await repo.EmitirAsync(await ProformaAsync(serie));
+        var guardada = await repo.ObtenerAsync(proforma.Id);
+
+        var esperada = EmisionComprobante.VigenciaProforma(EmisionComprobante.FechaPeru(proforma.Fecha));
+        Assert.Equal(1, proforma.Numero);
+        Assert.Equal(esperada, proforma.ValidaHasta);
+        Assert.Equal(esperada, guardada!.ValidaHasta);
+        Assert.Equal(TipoComprobante.Proforma, guardada.TipoComprobante);
+        Assert.Equal(2, guardada.Detalle.Count);
+        Assert.False(guardada.Convertida);
+    }
+
+    [FactConBD]
+    public async Task Convertir_la_proforma_enlaza_la_venta_y_la_marca_como_convertida()
+    {
+        var serieProforma = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var proforma = await repo.EmitirAsync(await ProformaAsync(serieProforma));
+
+        var boleta = await repo.EmitirAsync(await ConversionAsync(serieBoleta, proforma));
+
+        var convertida = await repo.ObtenerAsync(proforma.Id);
+        var venta = await repo.ObtenerAsync(boleta.Id);
+        Assert.Equal(boleta.NumeroCompleto, convertida!.ConvertidaEn);
+        Assert.True(convertida.Convertida);
+        Assert.Equal(proforma.Id, venta!.ProformaId);
+        Assert.Null(venta.ValidaHasta);
+        Assert.Equal(proforma.Total, venta.Total);
+    }
+
+    [FactConBD]
+    public async Task Tres_PC_convirtiendo_la_misma_proforma_solo_una_la_emite_y_no_se_gastan_numeros()
+    {
+        await using var local = new TresPC();
+        var serieProforma = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var proforma = await new ComprobanteRepositorio(_bd.Conexiones).EmitirAsync(await ProformaAsync(serieProforma));
+        var conversiones = new List<Comprobante>();
+        foreach (var _ in local.Pc)
+            conversiones.Add(await ConversionAsync(serieBoleta, proforma));
+
+        using var largada = new Barrier(3);
+        var resultados = await Task.WhenAll(local.Pc.Select((pc, i) => Task.Run(async () =>
+        {
+            largada.SignalAndWait();
+            try
+            {
+                await new ComprobanteRepositorio(pc).EmitirAsync(conversiones[i]);
+                return (Exception?)null;
+            }
+            catch (Exception ex)
+            {
+                return ex;
+            }
+        })));
+
+        Assert.Single(resultados, r => r is null);
+        var rechazos = resultados.Where(r => r is not null).ToList();
+        Assert.Equal(2, rechazos.Count);
+        Assert.All(rechazos, r => Assert.IsType<ProformaYaConvertidaException>(r));
+        Assert.Contains(proforma.NumeroCompleto, rechazos[0]!.Message);
+        // El ROLLBACK devuelve el número: la boleta emitida es la 1 y no hay saltos.
+        Assert.Equal(1L, await ContarAsync(serieBoleta));
+        Assert.Equal(1, conversiones.Single(c => c.Id != 0).Numero);
+    }
+
+    [FactConBD]
+    public async Task La_base_central_no_convierte_una_proforma_vencida()
+    {
+        var serieProforma = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var proforma = await repo.EmitirAsync(await ProformaAsync(serieProforma));
+        await EjecutarAsync("UPDATE comprobante SET valida_hasta = current_date - 8 WHERE id = @id", proforma.Id);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await repo.EmitirAsync(await ConversionAsync(serieBoleta, proforma)));
+
+        Assert.Contains("vencida", ex.Message);
+        Assert.Contains(proforma.NumeroCompleto, ex.Message);
+        Assert.Equal(0L, await ContarAsync(serieBoleta));
+    }
+
+    [FactConBD]
+    public async Task Solo_una_proforma_se_convierte_aunque_una_PC_vieja_lo_intente()
+    {
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var boleta = await repo.EmitirAsync(await BoletaAsync(serieBoleta));
+        var otra = await BoletaAsync(serieBoleta);
+        otra.ProformaId = boleta.Id; // apunta a una boleta, no a una proforma
+
+        var ex = await Assert.ThrowsAsync<PostgresException>(() => repo.EmitirAsync(otra));
+
+        Assert.Equal("ck_proforma", ex.ConstraintName);
+    }
+
+    [FactConBD]
+    public async Task La_proforma_sin_vigencia_no_se_guarda()
+    {
+        var serie = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var proforma = await new ComprobanteRepositorio(_bd.Conexiones).EmitirAsync(await ProformaAsync(serie));
+
+        var ex = await Assert.ThrowsAsync<PostgresException>(() =>
+            EjecutarAsync("UPDATE comprobante SET valida_hasta = NULL WHERE id = @id", proforma.Id));
+
+        Assert.Equal("ck_proforma", ex.ConstraintName);
+    }
+
+    /// <summary>Proforma preparada por el dominio con los productos de la boleta de prueba.</summary>
+    private async Task<Comprobante> ProformaAsync(string serie)
+    {
+        var boleta = await BoletaAsync(serie);
+        var proforma = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Proforma, boleta.Detalle));
+        proforma.SerieCodigo = serie;
+        proforma.TerminalId = boleta.TerminalId;
+        return proforma;
+    }
+
+    /// <summary>Boleta que sale de la proforma, con su mismo detalle.</summary>
+    private async Task<Comprobante> ConversionAsync(string serieBoleta, Comprobante proforma)
+    {
+        var terminal = await new TerminalRepositorio(_bd.Conexiones).RegistrarAccesoAsync("PC-PRUEBAS");
+        var detalle = proforma.Detalle.Select(l => new DetalleComprobante
+        {
+            ProductoId = l.ProductoId, Descripcion = l.Descripcion, Unidad = l.Unidad, Cantidad = l.Cantidad, PrecioUnitario = l.PrecioUnitario,
+        }).ToList();
+        var boleta = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Boleta, detalle, Proforma: proforma));
+        boleta.SerieCodigo = serieBoleta;
+        boleta.TerminalId = terminal.Id;
+        return boleta;
+    }
+
+    private async Task EjecutarAsync(string sql, long id)
+    {
+        await using var conexion = await _bd.Conexiones.AbrirAsync();
+        await using var cmd = new NpgsqlCommand(sql, conexion);
+        cmd.Parameters.AddWithValue("id", id);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     /// <summary>Boleta preparada por el dominio con dos productos reales del catálogo de pruebas.</summary>
     private async Task<Comprobante> BoletaAsync(string serie, Cliente? cliente = null)
     {

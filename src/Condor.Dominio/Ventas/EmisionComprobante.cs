@@ -20,6 +20,13 @@ public enum TipoEmision
     /// no es comprobante electrónico y no se envía a la SUNAT.
     /// </summary>
     NotaVenta,
+
+    /// <summary>
+    /// Proforma (cotización) para los clientes de obra (HU-09, Sprint 5):
+    /// serie PR01, vale <see cref="EmisionComprobante.DiasVigenciaProforma"/>
+    /// días y luego se convierte en venta.
+    /// </summary>
+    Proforma,
 }
 
 /// <summary>Campo de la pantalla al que apunta un error, para señalarlo.</summary>
@@ -27,24 +34,48 @@ public enum CampoEmision
 {
     Detalle,
     Documento,
+
+    /// <summary>La proforma que se está convirtiendo (HU-09).</summary>
+    Proforma,
 }
 
 public sealed record ErrorEmision(CampoEmision Campo, string Mensaje);
 
-/// <summary>Lo que hay en pantalla al presionar Emitir e imprimir.</summary>
-public sealed record SolicitudEmision(TipoEmision Tipo, IReadOnlyList<DetalleComprobante> Detalle, Cliente? Cliente = null);
+/// <summary>
+/// Lo que hay en pantalla al presionar Emitir e imprimir. Si la venta salió
+/// de una proforma (HU-09), <paramref name="Proforma"/> es esa proforma.
+/// </summary>
+public sealed record SolicitudEmision(TipoEmision Tipo, IReadOnlyList<DetalleComprobante> Detalle, Cliente? Cliente = null,
+    Comprobante? Proforma = null);
 
 /// <summary>
 /// Reglas para emitir un comprobante (HU-05, T-27): qué serie usa, qué
 /// cliente exige y cómo se arman sus líneas y totales. No toca la base de
 /// datos: el número correlativo lo asigna el repositorio al guardar. Desde
-/// el Sprint 5 emite también la nota de venta (HU-08, T-66).
+/// el Sprint 5 emite también la nota de venta (HU-08, T-66) y la proforma,
+/// y convierte la proforma en venta (HU-09, T-70).
 /// </summary>
 public static class EmisionComprobante
 {
     public const string SerieBoleta = "B001";
     public const string SerieFactura = "F001";
     public const string SerieNotaVenta = "NV01";
+    public const string SerieProforma = "PR01";
+
+    /// <summary>
+    /// Días que valen los precios de una proforma, contando el de emisión:
+    /// una proforma del lunes 23 vale hasta el domingo 29.
+    /// </summary>
+    public const int DiasVigenciaProforma = 7;
+
+    /// <summary>Perú no cambia de hora en el año: siempre UTC-5.</summary>
+    public static readonly TimeSpan HoraPeru = TimeSpan.FromHours(-5);
+
+    /// <summary>Fecha en Perú de un instante (la vigencia de la proforma se cuenta en días de Majes).</summary>
+    public static DateOnly FechaPeru(DateTimeOffset momento) => DateOnly.FromDateTime(momento.ToOffset(HoraPeru).DateTime);
+
+    /// <summary>Vigencia de una proforma emitida el día <paramref name="emision"/>.</summary>
+    public static DateOnly VigenciaProforma(DateOnly emision) => emision.AddDays(DiasVigenciaProforma - 1);
 
     /// <summary>
     /// Si la boleta supera este importe, la SUNAT exige identificar al comprador
@@ -57,14 +88,16 @@ public static class EmisionComprobante
     {
         TipoEmision.Factura => SerieFactura,
         TipoEmision.NotaVenta => SerieNotaVenta,
+        TipoEmision.Proforma => SerieProforma,
         _ => SerieBoleta,
     };
 
-    /// <summary>Código del tipo de comprobante: 01 o 03 del catálogo de la SUNAT, o NV.</summary>
+    /// <summary>Código del tipo de comprobante: 01 o 03 del catálogo de la SUNAT, NV o PR.</summary>
     public static string TipoSunatDe(TipoEmision tipo) => tipo switch
     {
         TipoEmision.Factura => TipoComprobante.Factura,
         TipoEmision.NotaVenta => TipoComprobante.NotaVenta,
+        TipoEmision.Proforma => TipoComprobante.Proforma,
         _ => TipoComprobante.Boleta,
     };
 
@@ -103,12 +136,24 @@ public static class EmisionComprobante
                     errores.Add(new(CampoEmision.Documento, "Registre al cliente con + Nuevo cliente o quítelo de la venta."));
                 break;
 
-            case TipoEmision.NotaVenta:
-                // HU-08: documento interno; el cliente es opcional y no hay
-                // tope de importe porque no va a la SUNAT.
+            case TipoEmision.NotaVenta or TipoEmision.Proforma:
+                // HU-08 y HU-09: documentos internos; el cliente es opcional y
+                // no hay tope de importe porque no van a la SUNAT.
                 if (cliente is { Id: <= 0 })
-                    errores.Add(new(CampoEmision.Documento, "Registre al cliente con + Nuevo cliente o quítelo de la nota de venta."));
+                    errores.Add(new(CampoEmision.Documento,
+                        $"Registre al cliente con + Nuevo cliente o quítelo de la {(solicitud.Tipo == TipoEmision.Proforma ? "proforma" : "nota de venta")}."));
                 break;
+        }
+
+        // HU-09: la venta que sale de una proforma.
+        if (solicitud.Proforma is { } proforma)
+        {
+            if (proforma.TipoComprobante != TipoComprobante.Proforma)
+                errores.Add(new(CampoEmision.Proforma, $"{proforma.NumeroCompleto} no es una proforma."));
+            else if (solicitud.Tipo == TipoEmision.Proforma)
+                errores.Add(new(CampoEmision.Proforma, "La proforma se convierte en Boleta, Con DNI, Factura o Nota de venta, no en otra proforma."));
+            else if (proforma.Convertida)
+                errores.Add(new(CampoEmision.Proforma, $"La proforma {proforma.NumeroCompleto} ya se convirtió en {proforma.ConvertidaEn}."));
         }
 
         return errores;
@@ -131,6 +176,7 @@ public static class EmisionComprobante
             SerieCodigo = SerieDe(solicitud.Tipo),
             Cliente = solicitud.Cliente,
             ClienteId = solicitud.Cliente?.Id,
+            ProformaId = solicitud.Proforma?.Id,
         };
 
         var item = 0;
@@ -157,6 +203,18 @@ public static class EmisionComprobante
 
     private static decimal Total(IEnumerable<DetalleComprobante> detalle) =>
         CalculadoraVenta.Totales(detalle.Select(l => CalculadoraVenta.Importe(l.Cantidad, l.PrecioUnitario))).Total;
+}
+
+/// <summary>
+/// Otra PC ya convirtió la proforma en venta (HU-09, criterio 3): la base
+/// central admite una sola conversión por proforma.
+/// </summary>
+public sealed class ProformaYaConvertidaException : Exception
+{
+    public ProformaYaConvertidaException(string? numero, Exception? causa = null)
+        : base($"La proforma {numero} ya se convirtió en venta (quizá en otra PC). Revise el Historial (F5).", causa)
+    {
+    }
 }
 
 /// <summary>El comprobante no cumple las reglas de emisión.</summary>

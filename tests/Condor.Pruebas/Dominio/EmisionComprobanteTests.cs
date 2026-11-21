@@ -174,6 +174,99 @@ public class EmisionComprobanteTests
         Assert.Equal(CampoEmision.Detalle, Assert.Single(errores).Campo);
     }
 
+    // HU-09: la proforma y su conversión en venta (T-70).
+
+    private static Comprobante Proforma(Cliente? cliente = null, long id = 40)
+    {
+        var proforma = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Proforma, DetalleWireframe(), cliente));
+        proforma.Id = id;
+        proforma.Numero = 4;
+        proforma.ValidaHasta = new DateOnly(2026, 12, 2);
+        return proforma;
+    }
+
+    [Fact]
+    public void Proforma_usa_PR01_puede_ir_sin_cliente_y_no_va_a_la_SUNAT()
+    {
+        var proforma = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Proforma, DetalleWireframe()));
+
+        Assert.Equal("PR01", proforma.SerieCodigo);
+        Assert.Equal(TipoComprobante.Proforma, proforma.TipoComprobante);
+        Assert.Equal("Proforma", proforma.NombreTipo);
+        Assert.False(proforma.EsElectronico);
+        Assert.Null(proforma.ProformaId);
+        Assert.Equal(745.00m, proforma.Total);
+    }
+
+    [Fact]
+    public void La_proforma_vale_7_dias_contando_el_de_emision()
+    {
+        Assert.Equal(new DateOnly(2026, 12, 2), EmisionComprobante.VigenciaProforma(new DateOnly(2026, 11, 26)));
+    }
+
+    [Fact]
+    public void La_fecha_de_la_proforma_se_cuenta_en_hora_de_Peru()
+    {
+        // 03:00 UTC del 27 son las 22:00 del 26 en Majes.
+        Assert.Equal(new DateOnly(2026, 11, 26), EmisionComprobante.FechaPeru(new DateTimeOffset(2026, 11, 27, 3, 0, 0, TimeSpan.Zero)));
+    }
+
+    [Fact]
+    public void La_proforma_vence_al_dia_siguiente_de_su_vigencia()
+    {
+        var proforma = Proforma();
+
+        Assert.False(proforma.Vencida(new DateOnly(2026, 12, 2)));
+        Assert.True(proforma.Vencida(new DateOnly(2026, 12, 3)));
+        Assert.False(new Comprobante { TipoComprobante = TipoComprobante.Boleta }.Vencida(new DateOnly(2030, 1, 1)));
+    }
+
+    [Fact]
+    public void Convertir_la_proforma_en_factura_lleva_el_enlace_a_la_proforma()
+    {
+        var proforma = Proforma(ConRuc());
+
+        var factura = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Factura, proforma.Detalle, ConRuc(), proforma));
+
+        Assert.Equal("F001", factura.SerieCodigo);
+        Assert.Equal(40, factura.ProformaId);
+        Assert.Equal(proforma.Total, factura.Total);
+    }
+
+    [Fact]
+    public void Una_proforma_ya_convertida_no_se_vuelve_a_convertir()
+    {
+        var proforma = Proforma();
+        proforma.ConvertidaEn = "B001-00000031";
+
+        // Nota de venta: con S/ 745.00 una boleta sin DNI tendría además el error de los S/ 700.
+        var errores = EmisionComprobante.Errores(new SolicitudEmision(TipoEmision.NotaVenta, proforma.Detalle, Proforma: proforma));
+
+        var error = Assert.Single(errores);
+        Assert.Equal(CampoEmision.Proforma, error.Campo);
+        Assert.Contains("B001-00000031", error.Mensaje);
+    }
+
+    [Fact]
+    public void La_proforma_no_se_convierte_en_otra_proforma()
+    {
+        var proforma = Proforma();
+
+        var errores = EmisionComprobante.Errores(new SolicitudEmision(TipoEmision.Proforma, proforma.Detalle, Proforma: proforma));
+
+        Assert.Equal(CampoEmision.Proforma, Assert.Single(errores).Campo);
+    }
+
+    [Fact]
+    public void Solo_una_proforma_se_puede_convertir()
+    {
+        var boleta = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Boleta, new List<DetalleComprobante> { Linea(1, "Clavo", 1, 7.50m) }));
+
+        var errores = EmisionComprobante.Errores(new SolicitudEmision(TipoEmision.Boleta, boleta.Detalle, Proforma: boleta));
+
+        Assert.Contains("no es una proforma", Assert.Single(errores).Mensaje);
+    }
+
     [Theory]
     [InlineData(TipoComprobante.Boleta, true)]
     [InlineData(TipoComprobante.Factura, true)]

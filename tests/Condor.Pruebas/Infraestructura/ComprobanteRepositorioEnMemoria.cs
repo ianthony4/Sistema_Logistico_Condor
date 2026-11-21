@@ -1,11 +1,13 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Ventas;
 
 namespace Condor.Pruebas.Infraestructura;
 
 /// <summary>
 /// Repositorio de comprobantes falso: numera cada serie desde 1, como la base
-/// de datos central, y guarda los comprobantes en memoria.
+/// de datos central, y guarda los comprobantes en memoria. Como V011, da la
+/// vigencia a la proforma y no deja convertirla dos veces (HU-09).
 /// </summary>
 public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepositorio
 {
@@ -22,13 +24,21 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepositorio
         if (ErrorAlEmitir is not null)
             throw ErrorAlEmitir;
 
+        var proforma = _comprobantes.FirstOrDefault(c => comprobante.ProformaId == c.Id);
+        if (proforma is not null && _comprobantes.Any(c => c.ProformaId == proforma.Id))
+            throw new ProformaYaConvertidaException(proforma.NumeroCompleto);
+
         _correlativos.TryGetValue(comprobante.SerieCodigo, out var ultimo);
         _correlativos[comprobante.SerieCodigo] = ++ultimo;
 
         comprobante.Id = _comprobantes.Count + 1;
         comprobante.Numero = ultimo;
         comprobante.Fecha = DateTimeOffset.Now;
+        if (comprobante.TipoComprobante == TipoComprobante.Proforma)
+            comprobante.ValidaHasta = EmisionComprobante.VigenciaProforma(EmisionComprobante.FechaPeru(comprobante.Fecha));
         _comprobantes.Add(comprobante);
+        if (proforma is not null)
+            proforma.ConvertidaEn = comprobante.NumeroCompleto;
         return Task.FromResult(comprobante);
     }
 
