@@ -1,5 +1,6 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Ventas;
 using Npgsql;
 
 namespace Condor.Datos;
@@ -13,6 +14,8 @@ namespace Condor.Datos;
 /// el COMMIT (T-05), así que dos PC que emiten a la vez reciben números
 /// seguidos; y si algo falla (la red, una línea inválida) el ROLLBACK deshace
 /// también el número: no quedan boletas a medias ni números saltados.
+/// Desde V011 guarda la vigencia de la proforma y de qué proforma salió cada
+/// venta; la base central admite una sola conversión por proforma (HU-09, T-70).
 /// </remarks>
 public sealed class ComprobanteRepositorio : IComprobanteRepositorio
 {
@@ -20,12 +23,15 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
         SELECT c.id, s.tipo_comprobante, s.id, s.codigo, c.numero, c.fecha, c.terminal_id, t.nombre,
                c.usuario, c.op_gravada, c.igv, c.total, c.estado_sunat, c.impresiones,
                cl.id, cl.tipo_documento, cl.numero_documento, cl.nombre, cl.direccion,
-               coalesce(cs.ultimo_error, cs.descripcion)
+               coalesce(cs.ultimo_error, cs.descripcion),
+               c.valida_hasta, c.proforma_id, sv.codigo, v.numero
         FROM comprobante c
         JOIN serie s ON s.id = c.serie_id
         JOIN terminal t ON t.id = c.terminal_id
         LEFT JOIN cliente cl ON cl.id = c.cliente_id
         LEFT JOIN comprobante_sunat cs ON cs.comprobante_id = c.id
+        LEFT JOIN comprobante v ON v.proforma_id = c.id
+        LEFT JOIN serie sv ON sv.id = v.serie_id
         """;
 
     private readonly FabricaConexiones _conexiones;
@@ -47,11 +53,14 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
 
             await using (var cmd = new NpgsqlCommand(
                 """
-                INSERT INTO comprobante (serie_id, numero, cliente_id, terminal_id, usuario, op_gravada, igv, total)
-                SELECT s.id, @numero, @cliente, @terminal, @usuario, @gravada, @igv, @total
+                INSERT INTO comprobante (serie_id, numero, cliente_id, terminal_id, usuario, op_gravada, igv, total,
+                                         valida_hasta, proforma_id)
+                SELECT s.id, @numero, @cliente, @terminal, @usuario, @gravada, @igv, @total,
+                       CASE WHEN s.tipo_comprobante = 'PR' THEN (now() AT TIME ZONE 'America/Lima')::date + @vigencia - 1 END,
+                       @proforma
                 FROM serie s
                 WHERE s.codigo = @serie AND s.tipo_comprobante = @tipo
-                RETURNING id, serie_id, fecha, estado_sunat
+                RETURNING id, serie_id, fecha, estado_sunat, valida_hasta
                 """, conexion, tx))
             {
                 cmd.Parameters.AddWithValue("numero", numero);
@@ -63,6 +72,8 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
                 cmd.Parameters.AddWithValue("total", comprobante.Total);
                 cmd.Parameters.AddWithValue("serie", comprobante.SerieCodigo.Trim().ToUpperInvariant());
                 cmd.Parameters.AddWithValue("tipo", comprobante.TipoComprobante);
+                cmd.Parameters.AddWithValue("vigencia", EmisionComprobante.DiasVigenciaProforma);
+                cmd.Parameters.AddWithValue("proforma", (object?)comprobante.ProformaId ?? DBNull.Value);
 
                 await using var lector = await cmd.ExecuteReaderAsync(ct);
                 if (!await lector.ReadAsync(ct))
@@ -73,6 +84,7 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
                 comprobante.SerieId = lector.GetInt32(1);
                 comprobante.Fecha = lector.GetFieldValue<DateTimeOffset>(2);
                 comprobante.EstadoSunat = lector.GetString(3);
+                comprobante.ValidaHasta = lector.IsDBNull(4) ? null : lector.GetFieldValue<DateOnly>(4);
             }
 
             // Todas las líneas en un solo viaje a la PC principal.
@@ -114,6 +126,18 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
             // V008: la base central no acepta una factura sin cliente con RUC (HU-06).
             comprobante.Id = 0;
             throw new InvalidOperationException("La factura requiere un cliente con RUC registrado: búsquelo por su RUC antes de emitir.", ex);
+        }
+        catch (PostgresException ex) when (ex.ConstraintName == "ux_comprobante_proforma")
+        {
+            // V011: otra PC convirtió la misma proforma un instante antes (HU-09).
+            comprobante.Id = 0;
+            throw new ProformaYaConvertidaException(await NumeroAsync(comprobante.ProformaId), ex);
+        }
+        catch (PostgresException ex) when (ex.ConstraintName == "ck_proforma_vencida")
+        {
+            comprobante.Id = 0;
+            throw new InvalidOperationException(
+                $"La proforma {await NumeroAsync(comprobante.ProformaId)} está vencida: emita una proforma nueva con los precios de hoy.", ex);
         }
         catch
         {
@@ -187,6 +211,21 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Número completo (PR01-00000004) de un comprobante, para los mensajes de error.</summary>
+    private async Task<string?> NumeroAsync(long? id)
+    {
+        if (id is null)
+            return null;
+        try
+        {
+            return (await ObtenerAsync(id.Value))?.NumeroCompleto;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private static Comprobante LeerCabecera(NpgsqlDataReader lector)
     {
         var comprobante = new Comprobante
@@ -206,6 +245,9 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
             EstadoSunat = lector.GetString(12),
             Impresiones = lector.GetInt32(13),
             MensajeSunat = lector.IsDBNull(19) ? null : lector.GetString(19),
+            ValidaHasta = lector.IsDBNull(20) ? null : lector.GetFieldValue<DateOnly>(20),
+            ProformaId = lector.IsDBNull(21) ? null : lector.GetInt64(21),
+            ConvertidaEn = lector.IsDBNull(22) ? null : Serie.Formatear(lector.GetString(22).Trim(), lector.GetInt64(23)),
         };
 
         if (!lector.IsDBNull(14))

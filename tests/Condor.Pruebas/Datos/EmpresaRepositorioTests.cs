@@ -42,7 +42,7 @@ public class EmpresaRepositorioTests
         await using var cmd = new NpgsqlCommand(
             """
             INSERT INTO comprobante (serie_id, numero, terminal_id, op_gravada, igv, total)
-            SELECT id, 99999999, @t, 10.00, 1.80, 12.00 FROM serie WHERE codigo = 'PR01'
+            SELECT id, 99999999, @t, 10.00, 1.80, 12.00 FROM serie WHERE codigo = 'NV01'
             """, conexion);
         cmd.Parameters.AddWithValue("t", terminal.Id);
 

@@ -2,8 +2,8 @@ namespace Condor.Dominio.Entidades;
 
 /// <summary>
 /// Comprobante emitido (boleta, factura, nota de venta o proforma).
-/// Las boletas se emiten desde el Sprint 2 (HU-05) y las notas de venta
-/// desde el Sprint 5 (HU-08).
+/// Las boletas se emiten desde el Sprint 2 (HU-05); las notas de venta y las
+/// proformas, desde el Sprint 5 (HU-08, HU-09).
 /// </summary>
 public sealed class Comprobante
 {
@@ -47,6 +47,21 @@ public sealed class Comprobante
 
     /// <summary>Veces que se imprimió en la ticketera; 0 si la impresión falló (HU-12).</summary>
     public int Impresiones { get; set; }
+
+    /// <summary>Último día en que valen los precios de la proforma (HU-09); null en los demás tipos.</summary>
+    public DateOnly? ValidaHasta { get; set; }
+
+    /// <summary>Proforma de la que salió esta venta (HU-09); null si se armó en la pantalla.</summary>
+    public long? ProformaId { get; set; }
+
+    /// <summary>Número del comprobante en que se convirtió la proforma (B001-00000031); null si aún no.</summary>
+    public string? ConvertidaEn { get; set; }
+
+    /// <summary>La proforma ya se convirtió en venta: no se puede convertir otra vez.</summary>
+    public bool Convertida => ConvertidaEn is not null;
+
+    /// <summary>True si es una proforma cuya vigencia ya pasó (<paramref name="hoy"/> en hora de Perú).</summary>
+    public bool Vencida(DateOnly hoy) => TipoComprobante == Entidades.TipoComprobante.Proforma && ValidaHasta < hoy;
 
     public List<DetalleComprobante> Detalle { get; } = new();
 

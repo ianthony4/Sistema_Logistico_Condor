@@ -14,6 +14,7 @@ erDiagram
     CLIENTE |o--o{ COMPROBANTE : "recibe"
     COMPROBANTE ||--|{ COMPROBANTE_DETALLE : "contiene"
     COMPROBANTE ||--o| COMPROBANTE_SUNAT : "se envía"
+    COMPROBANTE |o--o| COMPROBANTE : "proforma convertida en (V011)"
     PRODUCTO ||--o{ COMPROBANTE_DETALLE : "se vende en"
 
     TERMINAL {
@@ -58,6 +59,8 @@ erDiagram
         varchar estado_sunat "PENDIENTE, ACEPTADO, OBSERVADO o RECHAZADO (HU-07)"
         int impresiones "veces impreso en la ticketera (HU-12)"
         timestamptz impreso_en
+        date valida_hasta "vigencia de la proforma (HU-09)"
+        bigint proforma_id FK "proforma de la que salió la venta (HU-09)"
     }
     COMPROBANTE_DETALLE {
         bigint id PK
@@ -146,6 +149,8 @@ compras a proveedores (HU-11) se asociarán a ella.
 | Una factura (serie de tipo `01`) solo se guarda con un cliente de RUC (trigger `ck_factura_con_ruc`, V008). | La SUNAT rechaza la factura sin RUC; la base central lo impide aunque una PC tenga una versión vieja del programa (HU-06). |
 | Cada PC aparta los pendientes antes de reenviarlos (`comprobante_sunat.reservado_hasta`, V009) con `FOR UPDATE SKIP LOCKED`. | Si dos PC tienen la SUNAT configurada, un comprobante no se envía dos veces a la vez; si la PC se apaga, la reserva vence a los 5 minutos y otra lo retoma (HU-17). |
 | Índice parcial de comprobantes `PENDIENTE`. | El reenvío automático (HU-17) los encuentra rápido entre miles de aceptados. |
+| La proforma vive en `comprobante` (serie `PR01`) con su `valida_hasta`; la venta que sale de ella guarda `proforma_id` (V011). | La conversión copia el detalle sin reescribirlo y el historial muestra en qué boleta o factura terminó cada proforma (HU-09). |
+| `proforma_id` es único (índice parcial `ux_comprobante_proforma`) y el trigger `ck_proforma` solo deja convertir una proforma vigente. | Si dos PC convierten la misma proforma a la vez, una sola emite; la otra recibe el aviso y no gasta número (HU-09). |
 | `respaldo` guarda dónde quedó cada respaldo, no el archivo (V010). | El archivo vive en el disco externo; la base solo necesita saber cuándo fue el último para el aviso de las 24 horas en las tres PC (HU-15). |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 
