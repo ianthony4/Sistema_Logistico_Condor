@@ -261,6 +261,73 @@ public class FormatoTicketTests
         Assert.All(ticket.Lineas, l => Assert.True(l.Texto.Length <= columnas, $"{l.Texto.Length} > {columnas}: {l.Texto}"));
     }
 
+    // HU-09: la proforma (T-72).
+
+    private static Comprobante Proforma(Cliente? cliente = null)
+    {
+        var boleta = Boleta();
+        var proforma = EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Proforma, boleta.Detalle, cliente));
+        proforma.Numero = 4;
+        proforma.Fecha = boleta.Fecha;
+        proforma.TerminalNombre = boleta.TerminalNombre;
+        proforma.ValidaHasta = new DateOnly(2026, 10, 27);
+        return proforma;
+    }
+
+    [Fact]
+    public void La_proforma_dice_hasta_cuando_valen_sus_precios()
+    {
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Proforma()).ComoTexto();
+
+        Assert.Contains("PROFORMA", texto);
+        Assert.Contains("PR01-00000004", texto);
+        Assert.Contains("Válida hasta: 27/10/2026", texto);
+        Assert.Contains("Precios válidos hasta el 27/10/2026.", texto);
+        Assert.Contains("Cotización sin valor tributario.", texto);
+    }
+
+    [Fact]
+    public void La_proforma_desglosa_el_IGV_para_el_cliente_de_obra()
+    {
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Proforma()).ComoTexto();
+
+        Assert.Contains("OP. GRAVADA  S/      155.00", texto);
+        Assert.Contains("IGV 18%      S/       27.90", texto);
+        Assert.Contains("TOTAL        S/      182.90", texto);
+        Assert.DoesNotContain("Representación impresa", texto);
+    }
+
+    [Fact]
+    public void La_proforma_a_una_constructora_lleva_su_RUC()
+    {
+        var cliente = DatosPrueba.ClienteRuc();
+        cliente.Id = 9;
+
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Proforma(cliente)).ComoTexto();
+
+        Assert.Contains("Cliente: Constructora Valle de Majes S.A.C.", texto);
+        Assert.Contains("RUC: 20131312955", texto);
+        Assert.DoesNotContain("Forma de pago", texto);
+    }
+
+    [Fact]
+    public void Las_boletas_no_llevan_vigencia()
+    {
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Boleta()).ComoTexto();
+
+        Assert.DoesNotContain("Válida hasta", texto);
+    }
+
+    [Theory]
+    [InlineData(32)]
+    [InlineData(48)]
+    public void La_proforma_no_pasa_del_ancho(int columnas)
+    {
+        var ticket = FormatoTicket.Generar(DatosPrueba.Empresa(), Proforma(), columnas);
+
+        Assert.All(ticket.Lineas, l => Assert.True(l.Texto.Length <= columnas, $"{l.Texto.Length} > {columnas}: {l.Texto}"));
+    }
+
     [Theory]
     [InlineData("uno dos tres", 7, new[] { "uno dos", "tres" })]
     [InlineData("abcdefghij", 4, new[] { "abcd", "efgh", "ij" })]
