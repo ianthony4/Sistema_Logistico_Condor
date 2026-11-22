@@ -164,6 +164,8 @@ public class ProformasViewModelTests
         public Task RegistrarImpresionAsync(long id, CancellationToken ct = default) => throw Falla();
 
         public Task<IReadOnlyList<Comprobante>> ListarProformasAsync(string? texto, int limite = 100, CancellationToken ct = default) => throw Falla();
+
+        public Task<ResultadoComprobantes> BuscarAsync(FiltroComprobantes filtro, CancellationToken ct = default) => throw Falla();
     }
 }
 

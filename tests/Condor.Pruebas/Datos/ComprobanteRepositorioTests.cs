@@ -1,5 +1,7 @@
 using Condor.Datos;
+using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Sunat;
 using Condor.Dominio.Ventas;
 using Condor.Pruebas.Infraestructura;
 using Npgsql;
@@ -303,6 +305,96 @@ public class ComprobanteRepositorioTests
 
         Assert.Equal(boleta.NumeroCompleto, listada.ConvertidaEn);
         Assert.Equal(proforma.ValidaHasta, listada.ValidaHasta);
+    }
+
+    // HU-18: historial de ventas (T-75).
+
+    [FactConBD]
+    public async Task El_historial_busca_por_cliente_por_documento_y_por_numero()
+    {
+        var serie = await CrearSerieBoletaAsync();
+        var cliente = DatosPrueba.ClienteDni(DatosPrueba.DniNuevo());
+        cliente.Nombre = DatosPrueba.NombreUnico("Martínez Huamán");
+        cliente = await new ClienteRepositorio(_bd.Conexiones).RegistrarAsync(cliente);
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var suya = await repo.EmitirAsync(await BoletaAsync(serie, cliente));
+        var otra = await repo.EmitirAsync(await BoletaAsync(serie));
+
+        var porNombre = await repo.BuscarAsync(new FiltroComprobantes(Texto: cliente.Nombre[..20].ToUpperInvariant().Replace("Í", "I")));
+        var porDni = await repo.BuscarAsync(new FiltroComprobantes(Texto: cliente.NumeroDocumento));
+        var porNumero = await repo.BuscarAsync(new FiltroComprobantes(Texto: $"{serie}-{otra.Numero}"));
+
+        Assert.Equal(suya.Id, Assert.Single(porNombre.Comprobantes).Id);
+        Assert.Equal(suya.Id, Assert.Single(porDni.Comprobantes).Id);
+        Assert.Equal(otra.Id, Assert.Single(porNumero.Comprobantes).Id);
+        Assert.Equal(suya.Total, porNombre.Total);
+        Assert.Empty(porNombre.Comprobantes[0].Detalle);
+    }
+
+    [FactConBD]
+    public async Task El_historial_filtra_por_dias_de_Peru_y_por_tipo()
+    {
+        var serie = await CrearSerieBoletaAsync();
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var ayer = await repo.EmitirAsync(await BoletaAsync(serie));
+        var hoy = await repo.EmitirAsync(await BoletaAsync(serie));
+        // La de «ayer» se pasa a las 23:30 (hora de Majes) del día anterior: en UTC ya es hoy.
+        await EjecutarAsync("""
+            UPDATE comprobante SET fecha = ((now() AT TIME ZONE 'America/Lima')::date - 1 + time '23:30') AT TIME ZONE 'America/Lima'
+            WHERE id = @id
+            """, ayer.Id);
+        var diaHoy = EmisionComprobante.FechaPeru(DateTimeOffset.Now);
+
+        var deHoy = await repo.BuscarAsync(new FiltroComprobantes(diaHoy, diaHoy, Limite: 1000));
+        var deAyer = await repo.BuscarAsync(new FiltroComprobantes(diaHoy.AddDays(-1), diaHoy.AddDays(-1), Limite: 1000));
+        var facturasDeHoy = await repo.BuscarAsync(new FiltroComprobantes(diaHoy, diaHoy, TipoComprobante.Factura, Limite: 1000));
+
+        Assert.Contains(deAyer.Comprobantes, c => c.Id == ayer.Id);
+        Assert.DoesNotContain(deAyer.Comprobantes, c => c.Id == hoy.Id);
+        Assert.DoesNotContain(deHoy.Comprobantes, c => c.Id == ayer.Id);
+        Assert.All(facturasDeHoy.Comprobantes, c => Assert.Equal(TipoComprobante.Factura, c.TipoComprobante));
+        Assert.DoesNotContain(facturasDeHoy.Comprobantes, c => c.Id == hoy.Id);
+    }
+
+    [FactConBD]
+    public async Task El_total_del_historial_no_cuenta_proformas_ni_rechazadas_y_no_se_corta_con_el_limite()
+    {
+        var serieBoleta = await CrearSerieBoletaAsync();
+        var serieProforma = await CrearSerieAsync(TipoComprobante.Proforma, 'Q');
+        var cliente = DatosPrueba.ClienteDni(DatosPrueba.DniNuevo());
+        cliente.Nombre = DatosPrueba.NombreUnico("Total Historial");
+        cliente = await new ClienteRepositorio(_bd.Conexiones).RegistrarAsync(cliente);
+        var repo = new ComprobanteRepositorio(_bd.Conexiones);
+        var primera = await repo.EmitirAsync(await BoletaAsync(serieBoleta, cliente));
+        var segunda = await repo.EmitirAsync(await BoletaAsync(serieBoleta, cliente));
+        var rechazada = await repo.EmitirAsync(await BoletaAsync(serieBoleta, cliente));
+        await new EnvioSunatRepositorio(_bd.Conexiones).RegistrarRespuestaAsync(rechazada.Id,
+            new RespuestaSunat { Estado = EstadoSunat.Rechazado, Codigo = "2017", Descripcion = "DNI no válido" });
+        var proforma = await ProformaAsync(serieProforma);
+        proforma.Cliente = cliente;
+        proforma.ClienteId = cliente.Id;
+        await repo.EmitirAsync(proforma);
+
+        var ventas = await repo.BuscarAsync(new FiltroComprobantes(Texto: cliente.NumeroDocumento, Limite: 1));
+        var proformas = await repo.BuscarAsync(new FiltroComprobantes(Tipo: TipoComprobante.Proforma, Texto: cliente.NumeroDocumento));
+
+        Assert.Single(ventas.Comprobantes);
+        Assert.Equal(rechazada.Id, ventas.Comprobantes[0].Id); // la más reciente primero
+        Assert.Equal(3, ventas.Cantidad);
+        Assert.Equal(primera.Total + segunda.Total, ventas.Total);
+        Assert.Equal(proforma.Id, Assert.Single(proformas.Comprobantes).Id);
+        Assert.Equal(0m, proformas.Total);
+    }
+
+    [FactConBD]
+    public async Task Sin_resultados_el_historial_esta_vacio()
+    {
+        var resultado = await new ComprobanteRepositorio(_bd.Conexiones)
+            .BuscarAsync(new FiltroComprobantes(Texto: DatosPrueba.NombreUnico("Nadie")));
+
+        Assert.Empty(resultado.Comprobantes);
+        Assert.Equal(0, resultado.Cantidad);
+        Assert.Equal(0m, resultado.Total);
     }
 
     /// <summary>Proforma preparada por el dominio con los productos de la boleta de prueba.</summary>
