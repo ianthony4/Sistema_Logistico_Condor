@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
-| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
@@ -170,6 +170,27 @@ Prueba manual (Definition of Done de HU-15): en la PC principal, con el
 disco externo conectado, **Respaldo (F9)** > **Generar respaldo**; al
 terminar, el archivo `condor_AAAA-MM-DD_HH-mm.backup` está en el disco. Luego
 seguir el «Ensayo de restauración» de [respaldo.md](respaldo.md).
+
+## Nota de venta (T-69)
+
+`Aceptacion/HU08_NotasVentaTests` emite desde la pantalla Nueva venta una
+nota de venta de más de S/ 700 sin DNI: comprueba que sale con la serie
+`NV01` y el siguiente número, que se imprime con la leyenda «Documento
+interno de control» y sin desglosar el IGV, y que puede llevar al cliente.
+Comprueba también que no se envía a la SUNAT (falsa), que no queda ningún
+intento anotado y que no aparece entre los pendientes que reenvía el
+reenvío automático (HU-17); la boleta que se emite después sí se envía. Las
+tres PC emiten notas de venta a la vez sobre una serie de prueba (`K001`,
+`K002`...) sin repetir ni saltar números.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU08"
+```
+
+Prueba manual (Definition of Done de HU-08): elegir **Nota venta** en el
+resumen y **Emitir e imprimir (F10)**: el ticket sale como `NV01` con la
+leyenda de documento interno, bajo el botón no aparece ninguna respuesta de la
+SUNAT y el pie no suma pendientes.
 
 ## Antes de mover una tarjeta a *Hecho*
 
