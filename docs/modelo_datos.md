@@ -16,6 +16,10 @@ erDiagram
     COMPROBANTE ||--o| COMPROBANTE_SUNAT : "se envía"
     COMPROBANTE |o--o| COMPROBANTE : "proforma convertida en (V011)"
     PRODUCTO ||--o{ COMPROBANTE_DETALLE : "se vende en"
+    PROVEEDOR ||--o{ COMPRA : "entrega"
+    TERMINAL ||--o{ COMPRA : "registra"
+    COMPRA ||--|{ COMPRA_DETALLE : "contiene"
+    PRODUCTO ||--o{ COMPRA_DETALLE : "se compra en"
 
     TERMINAL {
         int id PK
@@ -122,12 +126,36 @@ erDiagram
         boolean activo
         timestamptz creado_en
     }
+    COMPRA {
+        bigint id PK
+        bigint proveedor_id FK
+        char tipo_documento "01 factura o 03 boleta del proveedor"
+        char serie "F001, E001... del proveedor"
+        bigint numero "único con el proveedor, el tipo y la serie"
+        date fecha_emision "la del comprobante del proveedor"
+        timestamptz registrada_en
+        int terminal_id FK
+        varchar observacion
+        numeric op_gravada
+        numeric igv
+        numeric total
+    }
+    COMPRA_DETALLE {
+        bigint id PK
+        bigint compra_id FK
+        int item
+        bigint producto_id FK
+        varchar descripcion
+        numeric cantidad
+        numeric costo_unitario "con IGV, hasta 4 decimales"
+        numeric importe
+    }
 ```
 
 `EMPRESA` no se relaciona con las demás tablas: guarda los datos de la
 ferretería que se imprimen en la cabecera de cada ticket (migración V005).
-`PROVEEDOR` (migración V006, HU-04) aún no se relaciona con las demás: las
-compras a proveedores (HU-11) se asociarán a ella.
+`PROVEEDOR` (migración V006, HU-04) se relaciona con `COMPRA` desde la
+migración V012 (HU-11).
 
 ## Decisiones
 
@@ -151,6 +179,8 @@ compras a proveedores (HU-11) se asociarán a ella.
 | Índice parcial de comprobantes `PENDIENTE`. | El reenvío automático (HU-17) los encuentra rápido entre miles de aceptados. |
 | La proforma vive en `comprobante` (serie `PR01`) con su `valida_hasta`; la venta que sale de ella guarda `proforma_id` (V011). | La conversión copia el detalle sin reescribirlo y el historial muestra en qué boleta o factura terminó cada proforma (HU-09). |
 | `proforma_id` es único (índice parcial `ux_comprobante_proforma`) y el trigger `ck_proforma` solo deja convertir una proforma vigente. | Si dos PC convierten la misma proforma a la vez, una sola emite; la otra recibe el aviso y no gasta número (HU-09). |
+| `compra` es única por `(proveedor_id, tipo_documento, serie, numero)` (V012). | El mismo comprobante del proveedor no se registra dos veces aunque dos PC lo intenten a la vez; el mismo número de otro proveedor sí (HU-11). |
+| `compra_detalle.costo_unitario` admite 4 decimales. | Algunos productos se compran por millar o por caja y su costo unitario tiene más de dos decimales; el importe sí va a céntimos. |
 | `respaldo` guarda dónde quedó cada respaldo, no el archivo (V010). | El archivo vive en el disco externo; la base solo necesita saber cuándo fue el último para el aviso de las 24 horas en las tres PC (HU-15). |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 
