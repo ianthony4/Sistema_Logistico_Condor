@@ -9,7 +9,8 @@ namespace Condor.Dominio.Impresion;
 /// ferretería, tipo y número, fecha, cliente, detalle, op. gravada, IGV,
 /// total y el importe en letras. La factura lleva además la razón social, el
 /// RUC y la dirección del cliente y la forma de pago (HU-06, T-52). La nota
-/// de venta solo lleva el total y avisa que es un documento interno (HU-08, T-67).
+/// de venta solo lleva el total y avisa que es un documento interno (HU-08, T-67);
+/// la proforma dice hasta cuándo valen sus precios (HU-09, T-72).
 /// </summary>
 public static class FormatoTicket
 {
@@ -20,8 +21,8 @@ public static class FormatoTicket
     public const string LeyendaNotaVenta =
         "Documento interno de control. No es comprobante de pago: si necesita boleta o factura, pídala en caja.";
 
-    /// <summary>Perú no cambia de hora en el año: la hora del ticket es siempre UTC-5.</summary>
-    private static readonly TimeSpan HoraPeru = TimeSpan.FromHours(-5);
+    /// <summary>Leyenda de la proforma: es una cotización, no un comprobante.</summary>
+    public const string LeyendaProforma = "Cotización sin valor tributario. Al comprar, pida su boleta o factura.";
 
     private static readonly CultureInfo Numeros = CultureInfo.InvariantCulture;
 
@@ -47,11 +48,13 @@ public static class FormatoTicket
         t.Lineas.Add(new(comprobante.NumeroCompleto, Alineacion.Centro, Negrita: true, Grande: true));
         Separador(t, '-');
 
-        var fecha = comprobante.Fecha.ToOffset(HoraPeru);
+        var fecha = comprobante.Fecha.ToOffset(EmisionComprobante.HoraPeru);
         // Con la cultura invariante, porque en un formato de fecha la "/" toma el
         // separador de Windows (en algunas PC es un espacio).
         var fechaTexto = fecha.ToString("dd/MM/yyyy HH:mm", Numeros);
         t.Lineas.Add(new(DosColumnas($"Fecha: {fechaTexto}", $"Caja: {comprobante.TerminalNombre ?? "-"}", n)));
+        if (comprobante.TipoComprobante == TipoComprobante.Proforma && comprobante.ValidaHasta is { } vigencia)
+            t.Lineas.Add(new($"Válida hasta: {Dia(vigencia)}", Negrita: true));
         if (comprobante.TipoComprobante == TipoComprobante.Factura && comprobante.Cliente is { } empresaCliente)
         {
             // HU-06: la factura identifica a la empresa que compra y dice
@@ -103,9 +106,18 @@ public static class FormatoTicket
             Agregar(t, $"Representación impresa de la {comprobante.NombreTipo}.", Alineacion.Centro);
         else if (comprobante.TipoComprobante == TipoComprobante.NotaVenta)
             Agregar(t, LeyendaNotaVenta, Alineacion.Centro, negrita: true);
+        else if (comprobante.TipoComprobante == TipoComprobante.Proforma)
+        {
+            if (comprobante.ValidaHasta is { } hasta)
+                Agregar(t, $"Precios válidos hasta el {Dia(hasta)}.", Alineacion.Centro, negrita: true);
+            Agregar(t, LeyendaProforma, Alineacion.Centro);
+        }
         t.Lineas.Add(new("¡Gracias por su compra!", Alineacion.Centro, Negrita: true));
         return t;
     }
+
+    /// <summary>Fecha con barras (29/11/2026), sin depender del separador de Windows.</summary>
+    public static string Dia(DateOnly fecha) => fecha.ToString("dd/MM/yyyy", Numeros);
 
     /// <summary>Monto con dos decimales y punto: 1234.50.</summary>
     public static string Monto(decimal monto) => monto.ToString("0.00", Numeros);
