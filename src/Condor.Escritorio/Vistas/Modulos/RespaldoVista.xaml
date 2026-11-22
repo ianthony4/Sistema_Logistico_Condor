@@ -1,12 +1,7 @@
-<Window x:Class="Condor.Escritorio.Vistas.RespaldoWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Respaldo de la base de datos"
-        Width="900" Height="640" MinWidth="760" MinHeight="520"
-        ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
-        Background="{StaticResource Superficie}"
-        FocusManager.FocusedElement="{Binding ElementName=BotonGenerar}"
-        Closing="Ventana_Closing">
+<!-- Respaldo (F9) en el panel derecho de la ventana principal (T-73). Mientras se genera, el menú no deja cambiar de módulo. -->
+<UserControl x:Class="Condor.Escritorio.Vistas.Modulos.RespaldoVista"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <DockPanel>
         <!-- Encabezado. -->
@@ -28,7 +23,6 @@
                 BorderBrush="{StaticResource Borde}" BorderThickness="0,1,0,0">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="Cerrar" Width="120" IsCancel="True" Click="Cerrar_Click" />
                     <Button x:Name="BotonGenerar" Width="230" Margin="12,0,0,0" IsDefault="True"
                             Style="{StaticResource BotonPrincipal}" Command="{Binding GenerarCommand}"
                             ToolTipService.ShowOnDisabled="True" ToolTip="{Binding Indicacion}">
@@ -115,4 +109,4 @@
             </DataGrid>
         </Border>
     </DockPanel>
-</Window>
+</UserControl>

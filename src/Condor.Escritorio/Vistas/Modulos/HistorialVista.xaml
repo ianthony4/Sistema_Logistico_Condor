@@ -1,16 +1,12 @@
-<Window x:Class="Condor.Escritorio.Vistas.ComprobantesRecientesWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Últimos comprobantes"
-        Width="1180" Height="600" MinWidth="960" MinHeight="420"
-        ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
-        Background="{StaticResource Superficie}"
-        FocusManager.FocusedElement="{Binding ElementName=Lista}">
+<!-- Historial (F5) en el panel derecho de la ventana principal (T-73). -->
+<UserControl x:Class="Condor.Escritorio.Vistas.Modulos.HistorialVista"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Window.InputBindings>
+    <UserControl.InputBindings>
         <KeyBinding Key="F11" Command="{Binding ReimprimirCommand}" />
         <KeyBinding Key="F5" Command="{Binding ActualizarCommand}" />
-    </Window.InputBindings>
+    </UserControl.InputBindings>
 
     <DockPanel>
         <!-- Encabezado. -->
@@ -32,7 +28,6 @@
                 BorderBrush="{StaticResource Borde}" BorderThickness="0,1,0,0">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="Cerrar" Width="120" IsCancel="True" Click="Cerrar_Click" />
                     <Button Width="190" Margin="12,0,0,0" IsDefault="True"
                             Style="{StaticResource BotonPrincipal}" Command="{Binding ReimprimirCommand}">
                         <StackPanel Orientation="Horizontal">
@@ -141,4 +136,4 @@
             </DataGrid>
         </Border>
     </DockPanel>
-</Window>
+</UserControl>

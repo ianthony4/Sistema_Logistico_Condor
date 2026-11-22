@@ -6,7 +6,8 @@ namespace Condor.Presentacion.ViewModels;
 
 /// <summary>
 /// Línea del detalle de la venta. La descripción y el precio se copian del
-/// producto al agregarlo; la cantidad se puede corregir en la tabla.
+/// producto al agregarlo (o de la proforma que se convierte, HU-09); la
+/// cantidad se puede corregir en la tabla.
 /// </summary>
 public sealed class LineaVentaViewModel : ObservableObject
 {
@@ -20,6 +21,16 @@ public sealed class LineaVentaViewModel : ObservableObject
         Unidad = producto.Unidad;
         PrecioUnitario = producto.Precio;
         Cantidad = cantidad;
+    }
+
+    /// <summary>Línea de una proforma que se convierte en venta: conserva su descripción y su precio (HU-09).</summary>
+    public LineaVentaViewModel(DetalleComprobante linea)
+    {
+        ProductoId = linea.ProductoId;
+        Descripcion = linea.Descripcion;
+        Unidad = linea.Unidad;
+        PrecioUnitario = linea.PrecioUnitario;
+        Cantidad = linea.Cantidad;
     }
 
     /// <summary>Se dispara cuando cambia el importe, para recalcular los totales.</summary>
