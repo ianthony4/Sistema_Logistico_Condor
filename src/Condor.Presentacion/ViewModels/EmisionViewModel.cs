@@ -10,7 +10,8 @@ namespace Condor.Presentacion.ViewModels;
 /// (HU-05, T-29). Valida con las reglas del dominio, guarda en la base central
 /// con el siguiente correlativo y avisa para imprimir el ticket. Desde el
 /// Sprint 4 también emite la factura con RUC en la serie F001 (HU-06, T-51)
-/// y desde el Sprint 5 la nota de venta NV01 (HU-08, T-68).
+/// y desde el Sprint 5 la nota de venta NV01 (HU-08, T-68), la proforma PR01
+/// y la venta que sale de una proforma (HU-09, T-73).
 /// </summary>
 public sealed class EmisionViewModel : ObservableObject
 {
@@ -21,6 +22,7 @@ public sealed class EmisionViewModel : ObservableObject
     private TipoEmision _tipo = TipoEmision.Boleta;
     private string? _error;
     private Comprobante? _ultimo;
+    private Comprobante? _proformaOrigen;
 
     /// <param name="sesion">Sesión de la PC: da la terminal que emite (HU-14).</param>
     public EmisionViewModel(IComprobanteRepositorio comprobantes, VentaViewModel venta,
@@ -35,6 +37,9 @@ public sealed class EmisionViewModel : ObservableObject
         {
             Error = null;
             EmitirCommand.NotificarCambio();
+            // Si se vacía el detalle (Esc o tras emitir), la venta ya no sale de la proforma.
+            if (_venta.Detalle.Count == 0)
+                ProformaOrigen = null;
         };
     }
 
@@ -58,6 +63,7 @@ public sealed class EmisionViewModel : ObservableObject
             OnPropertyChanged(nameof(EsBoletaConDni));
             OnPropertyChanged(nameof(EsFactura));
             OnPropertyChanged(nameof(EsNotaVenta));
+            OnPropertyChanged(nameof(EsProforma));
             Error = null;
 
             // HU-06: con la factura, el panel Cliente pide el RUC y recibe el foco.
@@ -110,6 +116,36 @@ public sealed class EmisionViewModel : ObservableObject
         }
     }
 
+    /// <summary>Proforma PR01 para cotizar a los clientes de obra; no va a la SUNAT (HU-09, T-73).</summary>
+    public bool EsProforma
+    {
+        get => Tipo == TipoEmision.Proforma;
+        set
+        {
+            if (value)
+                Tipo = TipoEmision.Proforma;
+        }
+    }
+
+    /// <summary>
+    /// Proforma de la que sale la venta en curso (HU-09); null si el detalle
+    /// se armó en la pantalla. Al emitir, el comprobante queda enlazado a ella.
+    /// </summary>
+    public Comprobante? ProformaOrigen
+    {
+        get => _proformaOrigen;
+        set
+        {
+            if (SetProperty(ref _proformaOrigen, value))
+                OnPropertyChanged(nameof(AvisoProforma));
+        }
+    }
+
+    /// <summary>Texto del resumen cuando la venta sale de una proforma.</summary>
+    public string? AvisoProforma => ProformaOrigen is { } p
+        ? $"Venta desde la proforma {p.NumeroCompleto}{(p.Cliente is { } c ? $" ({c.Nombre})" : string.Empty)}. Elija el comprobante y pulse Emitir."
+        : null;
+
     /// <summary>Por qué no se emitió; null si no hay error.</summary>
     public string? Error
     {
@@ -129,7 +165,8 @@ public sealed class EmisionViewModel : ObservableObject
     private async Task EmitirAsync()
     {
         Error = null;
-        var solicitud = new SolicitudEmision(Tipo, _venta.Detalle.Select(l => l.ADetalle()).ToList(), _cliente?.Seleccionado);
+        var solicitud = new SolicitudEmision(Tipo, _venta.Detalle.Select(l => l.ADetalle()).ToList(), _cliente?.Seleccionado,
+            ProformaOrigen);
 
         var errores = EmisionComprobante.Errores(solicitud);
         if (errores.Count > 0)

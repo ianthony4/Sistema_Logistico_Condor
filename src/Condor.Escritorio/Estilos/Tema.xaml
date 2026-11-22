@@ -3,6 +3,7 @@
                     xmlns:conv="clr-namespace:Condor.Escritorio.Convertidores">
 
     <conv:NuloAOcultoConverter x:Key="NuloAOculto" />
+    <conv:IgualesConverter x:Key="Iguales" />
     <BooleanToVisibilityConverter x:Key="BoolAVisible" />
 
     <!-- ================================================================
@@ -327,22 +328,38 @@
         </Setter>
     </Style>
 
-    <!-- Módulo actual: franja terracota a todo el ancho y sin acción. -->
+    <!-- Módulo actual: franja terracota a todo el ancho. -->
+    <ControlTemplate x:Key="PlantillaMenuActivo" TargetType="Button">
+        <Border Background="{StaticResource Acento}" Padding="30,0,34,0">
+            <DockPanel VerticalAlignment="Center">
+                <TextBlock DockPanel.Dock="Left" Text="{TemplateBinding Tag}" Style="{StaticResource Icono}"
+                           FontSize="20" Margin="0,0,20,0" />
+                <ContentPresenter VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+    </ControlTemplate>
+
     <Style x:Key="BotonMenuActivo" TargetType="Button" BasedOn="{StaticResource BotonMenu}">
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{StaticResource Acento}" Padding="30,0,34,0">
-                        <DockPanel VerticalAlignment="Center">
-                            <TextBlock DockPanel.Dock="Left" Text="{TemplateBinding Tag}" Style="{StaticResource Icono}"
-                                       FontSize="20" Margin="0,0,20,0" />
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </DockPanel>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
+        <Setter Property="Template" Value="{StaticResource PlantillaMenuActivo}" />
+    </Style>
+
+    <!-- Botón de módulo (T-73): CommandParameter es el módulo; se pinta activo
+         mientras ese módulo está en el panel derecho. -->
+    <Style x:Key="BotonModulo" TargetType="Button" BasedOn="{StaticResource BotonMenu}">
+        <Setter Property="Command" Value="{Binding IrACommand}" />
+        <Style.Triggers>
+            <DataTrigger Value="True">
+                <DataTrigger.Binding>
+                    <MultiBinding Converter="{StaticResource Iguales}">
+                        <Binding Path="ModuloActual" />
+                        <Binding Path="CommandParameter" RelativeSource="{RelativeSource Self}" />
+                    </MultiBinding>
+                </DataTrigger.Binding>
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Template" Value="{StaticResource PlantillaMenuActivo}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Tecla de atajo del menú (F1, F2...): solo texto tenue a la derecha. -->

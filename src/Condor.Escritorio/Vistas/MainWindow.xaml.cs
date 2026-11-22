@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -17,6 +18,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         SourceInitialized += (_, _) => PintarBarraTitulo();
+        Closing += Ventana_Closing;
 
         // Fecha y hora del encabezado.
         MostrarFechaHora();
@@ -30,6 +32,24 @@ public partial class MainWindow : Window
             if (e.NewValue is not MainViewModel vm)
                 return;
             vm.Venta.LineaAgregada += _ => CampoProducto.Focus();
+            // Proformas (F7, HU-09): al convertir una, su detalle y su cliente pasan
+            // a la venta en curso, que se reemplaza si tenía productos.
+            vm.ProformaPorConvertir += proforma =>
+            {
+                var reemplazar = vm.Venta.Detalle.Count == 0 || MessageBox.Show(this,
+                    $"La venta en curso tiene productos. ¿Reemplazarlos por los de la proforma {proforma.NumeroCompleto}?",
+                    "Convertir proforma", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+                if (!reemplazar)
+                    return;
+                vm.ConvertirProforma(proforma);
+                vm.IrA(Modulo.Venta);
+            };
+            // Al volver a Nueva venta (F1, Esc o el menú), el cursor vuelve al campo Producto.
+            vm.ModuloCambiado += () =>
+            {
+                if (vm.EnVenta)
+                    Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => CampoProducto.Focus()));
+            };
             if (vm.Emision is not null)
             {
                 vm.Emision.Emitido += _ => CampoProducto.Focus();
@@ -72,51 +92,6 @@ public partial class MainWindow : Window
         var dialogo = new NuevoClienteWindow(vm) { Owner = this };
         if (dialogo.ShowDialog() == true && vm.Guardado is not null)
             Vm!.ClienteRegistrado(vm.Guardado);
-        CampoProducto.Focus();
-    }
-
-    // Proveedores (F6, HU-04, T-39): lista con búsqueda por RUC o razón
-    // social y + Nuevo proveedor.
-    private void Proveedores_Click(object sender, RoutedEventArgs e)
-    {
-        var vm = Vm?.CrearProveedores();
-        if (vm is null)
-        {
-            Vm?.ModuloPendienteCommand.Execute("Proveedores");
-            return;
-        }
-
-        new ProveedoresWindow(vm) { Owner = this }.ShowDialog();
-        CampoProducto.Focus();
-    }
-
-    // Historial (F5): últimos comprobantes para reimprimir el que no salió
-    // (HU-12, criterio 2). La búsqueda completa llega con HU-18.
-    private void Historial_Click(object sender, RoutedEventArgs e)
-    {
-        var vm = Vm?.CrearComprobantesRecientes();
-        if (vm is null)
-        {
-            Vm?.ModuloPendienteCommand.Execute("Historial");
-            return;
-        }
-
-        new ComprobantesRecientesWindow(vm) { Owner = this }.ShowDialog();
-        CampoProducto.Focus();
-    }
-
-    // Respaldo (F9, HU-15, T-62): en la PC principal genera el respaldo en el
-    // disco externo; en las demás muestra cuándo fue el último.
-    private void Respaldo_Click(object sender, RoutedEventArgs e)
-    {
-        var vm = Vm?.CrearRespaldo();
-        if (vm is null)
-        {
-            Vm?.ModuloPendienteCommand.Execute("Respaldo");
-            return;
-        }
-
-        new RespaldoWindow(vm) { Owner = this }.ShowDialog();
         CampoProducto.Focus();
     }
 
@@ -236,37 +211,44 @@ public partial class MainWindow : Window
     private void CampoCantidad_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) =>
         CampoCantidad.SelectAll();
 
-    // Esc fuera de la lista de sugerencias: descartar la venta en curso.
+    // F1 a F9: módulos del menú en el panel derecho (T-73). Esc en un módulo
+    // vuelve a Nueva venta; en Nueva venta, fuera de la lista de sugerencias,
+    // descarta la venta en curso.
     // F10: emitir e imprimir (HU-05). Windows trata F10 como tecla de sistema
     // (activa el menú), por eso llega como Key.System y no sirve un KeyBinding.
     private void Ventana_KeyDown(object sender, KeyEventArgs e)
     {
         var tecla = e.Key == Key.System ? e.SystemKey : e.Key;
-        if (tecla == Key.Escape)
+        if (tecla is >= Key.F1 and <= Key.F9 && ModuloMenu.DeTecla(tecla - Key.F1 + 1) is { } modulo)
+        {
+            Vm?.IrA(modulo);
+            e.Handled = true;
+        }
+        else if (tecla == Key.Escape && Vm is { EnVenta: false } enModulo)
+        {
+            enModulo.IrA(Modulo.Venta);
+            e.Handled = true;
+        }
+        else if (tecla == Key.Escape)
         {
             CancelarVenta_Click(sender, e);
             e.Handled = true;
         }
-        else if (tecla == Key.F10 && Vm?.Emision is { } emision)
+        else if (tecla == Key.F10 && Vm is { EnVenta: true, Emision: { } emision })
         {
             _ = emision.EmitirCommand.EjecutarAsync();
             e.Handled = true;
         }
-        else if (tecla == Key.F5)
-        {
-            Historial_Click(sender, e);
-            e.Handled = true;
-        }
-        else if (tecla == Key.F6)
-        {
-            Proveedores_Click(sender, e);
-            e.Handled = true;
-        }
-        else if (tecla == Key.F9)
-        {
-            Respaldo_Click(sender, e);
-            e.Handled = true;
-        }
+    }
+
+    // Respaldo (F9): mientras se genera no se cierra el sistema (no desconectar el disco).
+    private void Ventana_Closing(object? sender, CancelEventArgs e)
+    {
+        if (Vm is not { RespaldoEnCurso: true })
+            return;
+        e.Cancel = true;
+        MessageBox.Show(this, "Espere a que termine el respaldo antes de cerrar el sistema.", "Respaldo",
+            MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void CancelarVenta_Click(object sender, RoutedEventArgs e)

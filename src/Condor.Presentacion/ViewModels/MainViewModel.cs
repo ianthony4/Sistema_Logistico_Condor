@@ -1,11 +1,13 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Ventas;
 using Condor.Presentacion.Mvvm;
 
 namespace Condor.Presentacion.ViewModels;
 
 /// <summary>
-/// ViewModel de la ventana principal (pantalla Nueva venta).
+/// ViewModel de la ventana principal: la pantalla Nueva venta y, desde el
+/// Sprint 5, los módulos del menú (F2 a F9) en el panel derecho (T-73).
 /// </summary>
 public sealed class MainViewModel : ObservableObject
 {
@@ -23,6 +25,8 @@ public sealed class MainViewModel : ObservableObject
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
+    private Modulo _moduloActual = Modulo.Venta;
+    private ObservableObject? _contenidoModulo;
 
     /// <param name="productos">Catálogo; si es null no se muestra el buscador.</param>
     /// <param name="clientes">Clientes; si es null no se muestra el panel Cliente (HU-03).</param>
@@ -35,6 +39,7 @@ public sealed class MainViewModel : ObservableObject
 
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
+        IrACommand = new RelayCommand(p => IrA(p is Modulo m ? m : Enum.Parse<Modulo>(p?.ToString() ?? nameof(Modulo.Venta))));
 
         Venta.LineaAgregada += linea =>
         {
@@ -165,6 +170,79 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
 
+    /// <summary>Módulo que se ve en el panel derecho; Venta es la pantalla Nueva venta.</summary>
+    public Modulo ModuloActual
+    {
+        get => _moduloActual;
+        private set
+        {
+            if (SetProperty(ref _moduloActual, value))
+                OnPropertyChanged(nameof(EnVenta));
+        }
+    }
+
+    public bool EnVenta => ModuloActual == Modulo.Venta;
+
+    /// <summary>ViewModel del módulo abierto (la vista lo muestra con su plantilla); null en Nueva venta.</summary>
+    public ObservableObject? ContenidoModulo
+    {
+        get => _contenidoModulo;
+        private set => SetProperty(ref _contenidoModulo, value);
+    }
+
+    /// <summary>Botones del menú: el parámetro es el nombre del módulo (Historial, Proveedores...).</summary>
+    public RelayCommand IrACommand { get; }
+
+    /// <summary>Se está generando un respaldo: no se cambia de módulo ni se cierra la ventana.</summary>
+    public bool RespaldoEnCurso => ContenidoModulo is RespaldoViewModel { Generando: true };
+
+    /// <summary>Se cambió de módulo: la vista pone el cursor donde corresponde.</summary>
+    public event Action? ModuloCambiado;
+
+    /// <summary>
+    /// Muestra el módulo en el panel derecho, en lugar de abrir otra ventana
+    /// (T-73). Cada vez se crea de nuevo, así se ven los datos al día. Devuelve
+    /// false si el módulo no está disponible en esta PC o si un respaldo en
+    /// curso no deja salir.
+    /// </summary>
+    public bool IrA(Modulo modulo)
+    {
+        if (RespaldoEnCurso && modulo != Modulo.Respaldo)
+        {
+            Mensaje = "Espere a que termine el respaldo antes de cambiar de módulo: no desconecte el disco.";
+            return false;
+        }
+
+        ObservableObject? contenido = null;
+        if (modulo != Modulo.Venta)
+        {
+            contenido = CrearModulo(modulo);
+            if (contenido is null)
+            {
+                ModuloPendienteCommand.Execute(modulo.Nombre());
+                return false;
+            }
+        }
+
+        ContenidoModulo = contenido;
+        ModuloActual = modulo;
+        // Al volver a la venta se refresca el buscador: pudo cambiar el catálogo.
+        if (modulo == Modulo.Venta)
+            Buscador?.Refrescar();
+        ModuloCambiado?.Invoke();
+        return true;
+    }
+
+    /// <summary>ViewModel de cada módulo; null si esta PC no lo tiene (o aún no existe).</summary>
+    private ObservableObject? CrearModulo(Modulo modulo) => modulo switch
+    {
+        Modulo.Historial => CrearComprobantesRecientes(),
+        Modulo.Proveedores => CrearProveedores(),
+        Modulo.Respaldo => CrearRespaldo(),
+        Modulo.Proformas => CrearProformas(),
+        _ => null,
+    };
+
     public void IniciarSesion(Sesion sesion) => Sesion = sesion;
 
     /// <summary>Descarta la venta en curso: detalle, producto a medio elegir y cliente (Esc).</summary>
@@ -234,6 +312,50 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// En el módulo Proformas se eligió una proforma para venderla (HU-09): la
+    /// vista confirma si reemplaza la venta en curso y la convierte.
+    /// </summary>
+    public event Action<Comprobante>? ProformaPorConvertir;
+
+    /// <summary>Módulo Proformas (F7, HU-09, T-73); null si no hay repositorio de comprobantes.</summary>
+    public ProformasViewModel? CrearProformas()
+    {
+        if (_comprobantes is null)
+            return null;
+
+        var vm = new ProformasViewModel(_comprobantes, Impresion);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        vm.ProformaElegida += p => ProformaPorConvertir?.Invoke(p);
+        return vm;
+    }
+
+    /// <summary>
+    /// Convierte la proforma en venta (HU-09, criterio 2): su detalle y su
+    /// cliente pasan a la pantalla tal como se cotizaron, y se propone el
+    /// comprobante según el documento del cliente (RUC: factura; DNI: boleta
+    /// con DNI). La venta en curso, si había, se reemplaza.
+    /// </summary>
+    public void ConvertirProforma(Comprobante proforma)
+    {
+        if (Emision is null)
+            return;
+
+        Buscador?.Limpiar();
+        Cliente?.Limpiar();
+        Venta.Cargar(proforma.Detalle);
+        if (proforma.Cliente is { } cliente)
+            Cliente?.Seleccionar(cliente);
+        Emision.Tipo = proforma.Cliente?.TipoDocumento switch
+        {
+            TipoDocumento.Ruc => TipoEmision.Factura,
+            TipoDocumento.Dni => TipoEmision.BoletaConDni,
+            _ => TipoEmision.Boleta,
+        };
+        Emision.ProformaOrigen = proforma;
+        Mensaje = $"Proforma {proforma.NumeroCompleto} cargada: {Venta.Detalle.Count} productos, total S/ {Venta.Total:0.00}. Revise y pulse Emitir (F10).";
+    }
+
+    /// <summary>
     /// Últimos comprobantes para reimprimir (F5, HU-12) y reenviar los
     /// pendientes a la SUNAT (HU-17); null si no hay ticketera ni comprobantes.
     /// </summary>
@@ -292,6 +414,8 @@ public sealed class MainViewModel : ObservableObject
         Buscador?.Limpiar();
         Cliente?.Limpiar();
         Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida. Total S/ {comprobante.Total:0.00}.";
+        if (comprobante.ProformaId is not null)
+            Mensaje = $"{comprobante.NombreTipo} {comprobante.NumeroCompleto} emitida desde la proforma. Total S/ {comprobante.Total:0.00}.";
         UltimaImpresion = ImprimirAsync(comprobante);
         if (EnvioSunat is not null && comprobante.EsElectronico)
             UltimoEnvioSunat = EnviarSunatAsync(comprobante);

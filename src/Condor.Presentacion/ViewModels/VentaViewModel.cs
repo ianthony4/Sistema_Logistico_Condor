@@ -111,6 +111,21 @@ public sealed class VentaViewModel : ObservableObject
         Detalle.Remove(linea);
     }
 
+    /// <summary>
+    /// Reemplaza el detalle por las líneas de una proforma, con sus mismos
+    /// precios y cantidades (HU-09): no hay que volver a digitarlas.
+    /// </summary>
+    public void Cargar(IEnumerable<DetalleComprobante> lineas)
+    {
+        Cancelar();
+        foreach (var detalle in lineas.OrderBy(l => l.Item))
+        {
+            var linea = new LineaVentaViewModel(detalle);
+            linea.ImporteCambiado += Recalcular;
+            Detalle.Add(linea);
+        }
+    }
+
     /// <summary>Descarta la venta en curso (tecla Esc).</summary>
     public void Cancelar()
     {
