@@ -102,6 +102,84 @@ public static class DatosPrueba
         return EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Factura, DetalleObra(), constructora));
     }
 
+    // Notas de venta y proformas (HU-08, HU-09).
+
+    /// <summary>Nota de venta NV01 del mostrador, sin cliente (aún sin número): 3 kg de clavos (S/ 22.50).</summary>
+    public static Comprobante NotaVentaMostrador()
+    {
+        var detalle = new List<DetalleComprobante>
+        {
+            new() { ProductoId = 5, Descripcion = "Clavo para madera 3 in x kg", Unidad = "KG", Cantidad = 3, PrecioUnitario = 7.50m },
+        };
+        return EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.NotaVenta, detalle));
+    }
+
+    /// <summary>Proforma PR01 de la obra para la constructora (aún sin número): el mismo pedido de la factura.</summary>
+    public static Comprobante ProformaObra(Cliente? cliente = null)
+    {
+        var constructora = cliente ?? ClienteRuc();
+        if (constructora.Id == 0)
+            constructora.Id = 2;
+        return EmisionComprobante.Preparar(new SolicitudEmision(TipoEmision.Proforma, DetalleObra(), constructora));
+    }
+
+    // Compras (HU-11): lo que el local compra a sus proveedores.
+
+    /// <summary>Hoy en Majes, para fechar las compras de prueba.</summary>
+    public static DateOnly Hoy() => EmisionComprobante.FechaPeru(DateTimeOffset.Now);
+
+    /// <summary>
+    /// Factura de Aceros Arequipa preparada por el dominio: 50 varillas a
+    /// S/ 31.50 y 10 kg de alambre a S/ 6.20 (S/ 1637.00).
+    /// </summary>
+    public static Compra CompraAceros(Proveedor? proveedor = null, long numero = 12345, DateOnly? fecha = null)
+    {
+        var aceros = proveedor ?? ProveedorAceros();
+        if (aceros.Id == 0)
+            aceros.Id = 1;
+        var compra = new Compra
+        {
+            ProveedorId = aceros.Id,
+            Proveedor = aceros,
+            TipoDocumento = TipoDocumentoCompra.Factura,
+            Serie = "F001",
+            Numero = numero,
+            FechaEmision = fecha ?? Hoy().AddDays(-1),
+            TerminalId = 1,
+            TerminalNombre = "PC-PRINCIPAL",
+            Detalle =
+            {
+                new() { ProductoId = 2, Descripcion = "Fierro corrugado 1/2 in x 9 m", Unidad = "VAR", Cantidad = 50, CostoUnitario = 31.50m },
+                new() { ProductoId = 7, Descripcion = "Alambre negro N.° 16", Unidad = "KG", Cantidad = 10, CostoUnitario = 6.20m },
+            },
+        };
+        return ValidadorCompra.Preparar(compra, Hoy());
+    }
+
+    /// <summary>Boleta de Yura por 40 bolsas de cemento a S/ 27.80 (S/ 1112.00).</summary>
+    public static Compra CompraCemento(Proveedor? proveedor = null, long numero = 731, DateOnly? fecha = null)
+    {
+        var yura = proveedor ?? ProveedorCemento();
+        if (yura.Id == 0)
+            yura.Id = 2;
+        var compra = new Compra
+        {
+            ProveedorId = yura.Id,
+            Proveedor = yura,
+            TipoDocumento = TipoDocumentoCompra.Boleta,
+            Serie = "B004",
+            Numero = numero,
+            FechaEmision = fecha ?? Hoy().AddDays(-3),
+            TerminalId = 1,
+            TerminalNombre = "PC-PRINCIPAL",
+            Detalle =
+            {
+                new() { ProductoId = 1, Descripcion = "Cemento Portland tipo I x 42.5 kg", Unidad = "BLS", Cantidad = 40, CostoUnitario = 27.80m },
+            },
+        };
+        return ValidadorCompra.Preparar(compra, Hoy());
+    }
+
     // Respaldos (HU-15): el disco externo de la PC principal.
 
     /// <summary>Carpeta del disco externo en la PC principal.</summary>
