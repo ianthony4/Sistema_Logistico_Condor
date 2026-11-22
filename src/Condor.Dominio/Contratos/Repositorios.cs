@@ -54,6 +54,38 @@ public interface IProveedorRepositorio
     Task<IReadOnlyList<Proveedor>> BuscarAsync(string? texto, int limite = 200, CancellationToken ct = default);
 }
 
+/// <summary>Qué compras mostrar en la ventana Compras (HU-11): fechas del comprobante y proveedor.</summary>
+/// <param name="Proveedor">RUC (inicio) o parte de la razón social o del nombre comercial; vacío, todos.</param>
+public sealed record FiltroCompras(DateOnly? Desde = null, DateOnly? Hasta = null, string? Proveedor = null, int Limite = 200);
+
+/// <summary>
+/// Compras encontradas (sin detalle) y, aparte, cuántas son y cuánto suman
+/// todas las del filtro, aunque la lista se corte en el límite.
+/// </summary>
+public sealed record ResultadoCompras(IReadOnlyList<Compra> Compras, int Cantidad, decimal Total)
+{
+    public static ResultadoCompras Ninguna { get; } = new(Array.Empty<Compra>(), 0, 0m);
+}
+
+/// <summary>
+/// Compras a los proveedores (HU-11). Lo implementa Condor.Datos.
+/// </summary>
+public interface ICompraRepositorio
+{
+    /// <summary>
+    /// Guarda la compra preparada (ValidadorCompra.Preparar) con todo su
+    /// detalle en una sola transacción y la devuelve con su Id. Lanza
+    /// CompraDuplicadaException si ese comprobante del proveedor ya estaba.
+    /// </summary>
+    Task<Compra> RegistrarAsync(Compra compra, CancellationToken ct = default);
+
+    /// <summary>Compra con su proveedor y su detalle; null si no existe.</summary>
+    Task<Compra?> ObtenerAsync(long id, CancellationToken ct = default);
+
+    /// <summary>Compras del filtro, de la fecha más reciente a la más antigua, con su total.</summary>
+    Task<ResultadoCompras> BuscarAsync(FiltroCompras filtro, CancellationToken ct = default);
+}
+
 /// <summary>
 /// Datos de la ferretería para la cabecera de los comprobantes (HU-12).
 /// </summary>
