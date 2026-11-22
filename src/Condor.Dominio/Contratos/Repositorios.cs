@@ -95,6 +95,26 @@ public interface IEmpresaRepositorio
 }
 
 /// <summary>
+/// Qué comprobantes mostrar en el Historial (HU-18): fechas de emisión (días
+/// de Perú), tipo y un texto con el número o el cliente.
+/// </summary>
+/// <param name="Tipo">01, 03, NV o PR; null para todas las ventas (sin las proformas).</param>
+/// <param name="Texto">Número (B001-00000012 o 12), DNI o RUC del cliente (inicio) o parte de su nombre.</param>
+public sealed record FiltroComprobantes(DateOnly? Desde = null, DateOnly? Hasta = null, string? Tipo = null, string? Texto = null,
+    int Limite = 200);
+
+/// <summary>
+/// Comprobantes encontrados (sin detalle) y, aparte, cuántos son y cuánto
+/// suman las ventas del filtro aunque la lista se corte en el límite. El
+/// total no cuenta proformas (no son ventas) ni comprobantes rechazados por
+/// la SUNAT (se vuelven a emitir).
+/// </summary>
+public sealed record ResultadoComprobantes(IReadOnlyList<Comprobante> Comprobantes, int Cantidad, decimal Total)
+{
+    public static ResultadoComprobantes Ninguno { get; } = new(Array.Empty<Comprobante>(), 0, 0m);
+}
+
+/// <summary>
 /// Comprobantes emitidos (HU-05, HU-12). Lo implementa Condor.Datos.
 /// </summary>
 public interface IComprobanteRepositorio
@@ -124,6 +144,12 @@ public interface IComprobanteRepositorio
     /// si ya se convirtió y en qué comprobante.
     /// </summary>
     Task<IReadOnlyList<Comprobante>> ListarProformasAsync(string? texto, int limite = 100, CancellationToken ct = default);
+
+    /// <summary>
+    /// Historial de ventas (HU-18, T-75): comprobantes del filtro, del más
+    /// reciente al más antiguo, con su estado ante la SUNAT y el total del período.
+    /// </summary>
+    Task<ResultadoComprobantes> BuscarAsync(FiltroComprobantes filtro, CancellationToken ct = default);
 }
 
 /// <summary>

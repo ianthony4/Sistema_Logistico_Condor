@@ -1,5 +1,6 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Sunat;
 using Condor.Dominio.Ventas;
 
 namespace Condor.Pruebas.Infraestructura;
@@ -62,6 +63,32 @@ public sealed class ComprobanteRepositorioEnMemoria : IComprobanteRepositorio
             .Take(limite)
             .ToList();
         return Task.FromResult(proformas);
+    }
+
+    /// <summary>Último filtro con que se buscó, para comprobar lo que pidió el Historial.</summary>
+    public FiltroComprobantes? UltimoFiltro { get; private set; }
+
+    public Task<ResultadoComprobantes> BuscarAsync(FiltroComprobantes filtro, CancellationToken ct = default)
+    {
+        UltimoFiltro = filtro;
+        var texto = filtro.Texto?.Trim() ?? string.Empty;
+        var esNumero = Serie.IntentarLeerNumero(texto, out var serie, out var numero);
+        var encontrados = _comprobantes
+            .Where(c => filtro.Desde is null || EmisionComprobante.FechaPeru(c.Fecha) >= filtro.Desde)
+            .Where(c => filtro.Hasta is null || EmisionComprobante.FechaPeru(c.Fecha) <= filtro.Hasta)
+            .Where(c => string.IsNullOrEmpty(filtro.Tipo) ? c.TipoComprobante != TipoComprobante.Proforma : c.TipoComprobante == filtro.Tipo)
+            .Where(c => texto.Length == 0
+                        || (esNumero && c.Numero == numero && (serie is null || c.SerieCodigo == serie))
+                        || (c.Cliente?.NumeroDocumento.StartsWith(texto, StringComparison.Ordinal) ?? false)
+                        || (c.Cliente?.Nombre.Contains(texto, StringComparison.CurrentCultureIgnoreCase) ?? false))
+            .OrderByDescending(c => c.Id)
+            .ToList();
+        var total = encontrados
+            .Where(c => c.TipoComprobante != TipoComprobante.Proforma && c.EstadoSunat != EstadoSunat.Rechazado)
+            .Sum(c => c.Total);
+        return Task.FromResult(encontrados.Count == 0
+            ? ResultadoComprobantes.Ninguno
+            : new ResultadoComprobantes(encontrados.Take(filtro.Limite).ToList(), encontrados.Count, total));
     }
 
     /// <summary>Impresiones anotadas por comprobante. Como la base real, no toca el objeto en memoria.</summary>

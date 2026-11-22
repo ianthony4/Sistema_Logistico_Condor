@@ -19,12 +19,15 @@ namespace Condor.Datos;
 /// </remarks>
 public sealed class ComprobanteRepositorio : IComprobanteRepositorio
 {
-    private const string Cabecera = """
-        SELECT c.id, s.tipo_comprobante, s.id, s.codigo, c.numero, c.fecha, c.terminal_id, t.nombre,
+    private const string Columnas = """
+        c.id, s.tipo_comprobante, s.id, s.codigo, c.numero, c.fecha, c.terminal_id, t.nombre,
                c.usuario, c.op_gravada, c.igv, c.total, c.estado_sunat, c.impresiones,
                cl.id, cl.tipo_documento, cl.numero_documento, cl.nombre, cl.direccion,
                coalesce(cs.ultimo_error, cs.descripcion),
                c.valida_hasta, c.proforma_id, sv.codigo, v.numero
+        """;
+
+    private const string Tablas = """
         FROM comprobante c
         JOIN serie s ON s.id = c.serie_id
         JOIN terminal t ON t.id = c.terminal_id
@@ -33,6 +36,8 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
         LEFT JOIN comprobante v ON v.proforma_id = c.id
         LEFT JOIN serie sv ON sv.id = v.serie_id
         """;
+
+    private const string Cabecera = $"SELECT {Columnas} {Tablas}";
 
     private readonly FabricaConexiones _conexiones;
 
@@ -238,6 +243,52 @@ public sealed class ComprobanteRepositorio : IComprobanteRepositorio
         while (await lector.ReadAsync(ct))
             proformas.Add(LeerCabecera(lector));
         return proformas;
+    }
+
+    public async Task<ResultadoComprobantes> BuscarAsync(FiltroComprobantes filtro, CancellationToken ct = default)
+    {
+        var texto = filtro.Texto?.Trim() ?? string.Empty;
+        var esNumero = Serie.IntentarLeerNumero(texto, out var serie, out var numero);
+
+        // Las fechas son días de Majes: se pasan a instantes para usar el
+        // índice ix_comprobante_fecha. count(*) y sum() OVER () cuentan todo
+        // el filtro antes del LIMIT, así el total del período sale completo.
+        await using var conexion = await _conexiones.AbrirAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            $"""
+            SELECT {Columnas},
+                   count(*) OVER (),
+                   coalesce(sum(c.total) FILTER (WHERE s.tipo_comprobante <> 'PR' AND c.estado_sunat <> 'RECHAZADO') OVER (), 0)
+            {Tablas}
+            WHERE (@desde::date IS NULL OR c.fecha >= (@desde::date)::timestamp AT TIME ZONE 'America/Lima')
+              AND (@hasta::date IS NULL OR c.fecha < (@hasta::date + 1)::timestamp AT TIME ZONE 'America/Lima')
+              AND (CASE WHEN @tipo = '' THEN s.tipo_comprobante <> 'PR' ELSE s.tipo_comprobante = @tipo END)
+              AND (@texto = ''
+                   OR (@numero > 0 AND c.numero = @numero AND (@serie = '' OR s.codigo = @serie))
+                   OR cl.numero_documento LIKE @texto || '%'
+                   OR texto_busqueda(cl.nombre) LIKE '%' || texto_busqueda(@texto) || '%')
+            ORDER BY c.id DESC
+            LIMIT @limite
+            """, conexion);
+        cmd.Parameters.Add(new NpgsqlParameter("desde", NpgsqlTypes.NpgsqlDbType.Date) { Value = (object?)filtro.Desde ?? DBNull.Value });
+        cmd.Parameters.Add(new NpgsqlParameter("hasta", NpgsqlTypes.NpgsqlDbType.Date) { Value = (object?)filtro.Hasta ?? DBNull.Value });
+        cmd.Parameters.AddWithValue("tipo", filtro.Tipo?.Trim().ToUpperInvariant() ?? string.Empty);
+        cmd.Parameters.AddWithValue("texto", ProductoRepositorio.EscaparLike(texto));
+        cmd.Parameters.AddWithValue("numero", esNumero ? numero : 0L);
+        cmd.Parameters.AddWithValue("serie", serie ?? string.Empty);
+        cmd.Parameters.AddWithValue("limite", Math.Clamp(filtro.Limite, 1, 1000));
+
+        var comprobantes = new List<Comprobante>();
+        var cantidad = 0;
+        var total = 0m;
+        await using var lector = await cmd.ExecuteReaderAsync(ct);
+        while (await lector.ReadAsync(ct))
+        {
+            comprobantes.Add(LeerCabecera(lector));
+            cantidad = (int)lector.GetInt64(24);
+            total = lector.GetDecimal(25);
+        }
+        return comprobantes.Count == 0 ? ResultadoComprobantes.Ninguno : new ResultadoComprobantes(comprobantes, cantidad, total);
     }
 
     /// <summary>Número completo (PR01-00000004) de un comprobante, para los mensajes de error.</summary>
