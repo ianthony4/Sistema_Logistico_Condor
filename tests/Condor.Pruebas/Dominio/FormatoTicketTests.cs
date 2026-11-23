@@ -202,6 +202,45 @@ public class FormatoTicketTests
         Assert.EndsWith("92.40", linea.Texto);
     }
 
+    // HU-18: la reimpresión (T-77).
+
+    [Fact]
+    public void La_reimpresion_de_un_comprobante_ya_impreso_dice_que_es_copia()
+    {
+        var boleta = Boleta();
+        boleta.Impresiones = 1;
+
+        var ticket = FormatoTicket.Generar(DatosPrueba.Empresa(), boleta);
+
+        var copia = ticket.Lineas.Single(l => l.Texto == FormatoTicket.MarcaCopia);
+        Assert.True(copia.Negrita);
+        Assert.Equal(Alineacion.Centro, copia.Alineacion);
+        // Va justo debajo del número.
+        Assert.Equal("B001-00000012", ticket.Lineas[ticket.Lineas.IndexOf(copia) - 1].Texto);
+    }
+
+    [Fact]
+    public void Si_nunca_se_imprimio_el_ticket_es_el_original()
+    {
+        var texto = FormatoTicket.Generar(DatosPrueba.Empresa(), Boleta()).ComoTexto();
+
+        Assert.DoesNotContain("COPIA", texto);
+    }
+
+    [Theory]
+    [InlineData(32)]
+    [InlineData(42)]
+    public void La_marca_de_copia_no_pasa_del_ancho(int columnas)
+    {
+        var boleta = Boleta();
+        boleta.Impresiones = 3;
+
+        var ticket = FormatoTicket.Generar(DatosPrueba.Empresa(), boleta, columnas);
+
+        Assert.All(ticket.Lineas, l => Assert.True(l.Texto.Length <= columnas, $"{l.Texto.Length} > {columnas}: {l.Texto}"));
+        Assert.Contains("COPIA", ticket.ComoTexto());
+    }
+
     // HU-08: la nota de venta (T-67).
 
     private static Comprobante NotaVenta(Cliente? cliente = null)
