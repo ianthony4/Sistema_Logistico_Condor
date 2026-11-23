@@ -95,6 +95,7 @@ public class HU12_ImprimirTicketTests
         var texto = Assert.Single(otraTicketera.Impresos).ComoTexto();
         Assert.Contains(boleta.NumeroCompleto, texto);
         Assert.Contains(boleta.Detalle[0].Descripcion, texto);
+        Assert.DoesNotContain("COPIA", texto); // el primero no salió: este es el original (HU-18)
         Assert.Equal(1, await ImpresionesAsync(boleta.Id));
     }
 

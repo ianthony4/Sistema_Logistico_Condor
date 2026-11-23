@@ -10,7 +10,8 @@ namespace Condor.Dominio.Impresion;
 /// total y el importe en letras. La factura lleva además la razón social, el
 /// RUC y la dirección del cliente y la forma de pago (HU-06, T-52). La nota
 /// de venta solo lleva el total y avisa que es un documento interno (HU-08, T-67);
-/// la proforma dice hasta cuándo valen sus precios (HU-09, T-72).
+/// la proforma dice hasta cuándo valen sus precios (HU-09, T-72). Si el
+/// comprobante ya salió impreso antes, el ticket dice que es una copia (HU-18, T-77).
 /// </summary>
 public static class FormatoTicket
 {
@@ -20,6 +21,9 @@ public static class FormatoTicket
     /// <summary>Leyenda de la nota de venta: no sirve como comprobante de pago ante la SUNAT.</summary>
     public const string LeyendaNotaVenta =
         "Documento interno de control. No es comprobante de pago: si necesita boleta o factura, pídala en caja.";
+
+    /// <summary>Marca de la reimpresión: el cliente ya se llevó el original (HU-18).</summary>
+    public const string MarcaCopia = "*** COPIA - REIMPRESIÓN ***";
 
     /// <summary>Leyenda de la proforma: es una cotización, no un comprobante.</summary>
     public const string LeyendaProforma = "Cotización sin valor tributario. Al comprar, pida su boleta o factura.";
@@ -46,6 +50,9 @@ public static class FormatoTicket
         // Tipo y número del comprobante.
         Agregar(t, comprobante.NombreTipo.ToUpperInvariant(), Alineacion.Centro, negrita: true);
         t.Lineas.Add(new(comprobante.NumeroCompleto, Alineacion.Centro, Negrita: true, Grande: true));
+        // Con 0 impresiones (la ticketera falló al emitir) el que sale ahora es el original.
+        if (comprobante.Impresiones > 0)
+            Agregar(t, MarcaCopia, Alineacion.Centro, negrita: true);
         Separador(t, '-');
 
         var fecha = comprobante.Fecha.ToOffset(EmisionComprobante.HoraPeru);
