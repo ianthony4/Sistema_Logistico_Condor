@@ -114,7 +114,7 @@
                     </DockPanel>
                 </Button>
                 <Button Style="{StaticResource BotonModulo}" Tag="&#xE823;" Focusable="False" CommandParameter="Historial"
-                        ToolTip="Últimos comprobantes: reimprimir el que no salió.">
+                        ToolTip="Historial de ventas: buscar por fecha, tipo o cliente y reimprimir.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F5" />
                         <TextBlock Text="Historial" />
