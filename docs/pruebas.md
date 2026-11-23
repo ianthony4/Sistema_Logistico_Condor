@@ -1,11 +1,11 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
 | `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
@@ -191,6 +191,31 @@ Prueba manual (Definition of Done de HU-08): elegir **Nota venta** en el
 resumen y **Emitir e imprimir (F10)**: el ticket sale como `NV01` con la
 leyenda de documento interno, bajo el botón no aparece ninguna respuesta de la
 SUNAT y el pie no suma pendientes.
+
+## Proformas (T-74)
+
+`Aceptacion/HU09_ProformasTests` emite desde la pantalla Nueva venta una
+proforma para una constructora: comprueba que sale con la serie `PR01`, que
+vale 7 días contando el de emisión, que el ticket dice «Válida hasta» y que no
+se envía a la SUNAT. Desde otra pantalla la busca por el RUC en Proformas
+(F7), la convierte y comprueba que el detalle y el cliente pasan tal cual, que
+se propone Factura y que al emitir sale con el siguiente número de la `F001`,
+enlazada a la proforma y enviada a la SUNAT. Si dos PC cargan la misma
+proforma, la segunda en emitir recibe el aviso «ya se convirtió en venta» y no
+gasta número; en la lista figura en qué factura terminó. Una proforma vencida
+no se puede convertir ni desde la ventana ni forzando la emisión (la base
+central la rechaza); en su último día de vigencia todavía se convierte.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU09"
+```
+
+Prueba manual (Definition of Done de HU-09): armar un pedido de obra, buscar
+el RUC del cliente, elegir **Proforma** y **Emitir e imprimir (F10)**. En otra
+PC, **Proformas (F7)**, buscar por el RUC, **Convertir en venta (Enter)**: el
+detalle aparece en Nueva venta con el aviso «Venta desde la proforma…» y
+Factura elegida; **F10** emite la factura. Volver a F7: la proforma dice
+«Convertida en F001-…» y el botón Convertir queda deshabilitado.
 
 ## Antes de mover una tarjeta a *Hecho*
 
