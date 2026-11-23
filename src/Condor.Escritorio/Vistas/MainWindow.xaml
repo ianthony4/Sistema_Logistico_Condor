@@ -28,6 +28,9 @@
         <DataTemplate DataType="{x:Type vm:ProformasViewModel}">
             <modulos:ProformasVista />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ComprasViewModel}">
+            <modulos:ComprasVista />
+        </DataTemplate>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -107,7 +110,8 @@
                         <TextBlock Text="Clientes" />
                     </DockPanel>
                 </Button>
-                <Button Style="{StaticResource BotonModulo}" Tag="&#xE8A5;" Focusable="False" CommandParameter="Compras">
+                <Button Style="{StaticResource BotonModulo}" Tag="&#xE8A5;" Focusable="False" CommandParameter="Compras"
+                        ToolTip="Compras a proveedores: facturas recibidas y egresos del período.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F4" />
                         <TextBlock Text="Compras" />

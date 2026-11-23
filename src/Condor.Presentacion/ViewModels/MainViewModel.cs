@@ -15,6 +15,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly IClienteRepositorio? _clientes;
     private readonly IComprobanteRepositorio? _comprobantes;
     private readonly IProveedorRepositorio? _proveedores;
+    private readonly ICompraRepositorio? _compras;
     private ImpresionViewModel? _impresion;
     private EnvioSunatViewModel? _envioSunat;
     private ReenvioSunatViewModel? _reenvioSunat;
@@ -32,10 +33,13 @@ public sealed class MainViewModel : ObservableObject
     /// <param name="clientes">Clientes; si es null no se muestra el panel Cliente (HU-03).</param>
     /// <param name="comprobantes">Comprobantes; si es null el botón Emitir no está disponible (HU-05).</param>
     /// <param name="proveedores">Proveedores; si es null el módulo Proveedores no está disponible (HU-04).</param>
+    /// <param name="compras">Compras a proveedores; si es null el módulo Compras no está disponible (HU-11).</param>
     public MainViewModel(IProductoRepositorio? productos = null, IClienteRepositorio? clientes = null,
-        IComprobanteRepositorio? comprobantes = null, IProveedorRepositorio? proveedores = null)
+        IComprobanteRepositorio? comprobantes = null, IProveedorRepositorio? proveedores = null,
+        ICompraRepositorio? compras = null)
     {
         _proveedores = proveedores;
+        _compras = compras;
 
         ModuloPendienteCommand = new RelayCommand(
             p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
@@ -240,6 +244,7 @@ public sealed class MainViewModel : ObservableObject
         Modulo.Proveedores => CrearProveedores(),
         Modulo.Respaldo => CrearRespaldo(),
         Modulo.Proformas => CrearProformas(),
+        Modulo.Compras => CrearCompras(),
         _ => null,
     };
 
@@ -307,6 +312,17 @@ public sealed class MainViewModel : ObservableObject
             return null;
 
         var vm = new ProveedoresViewModel(_proveedores);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        return vm;
+    }
+
+    /// <summary>Módulo Compras (F4, HU-11, T-82); null si no hay repositorio de compras.</summary>
+    public ComprasViewModel? CrearCompras()
+    {
+        if (_compras is null)
+            return null;
+
+        var vm = new ComprasViewModel(_compras);
         vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         return vm;
     }
