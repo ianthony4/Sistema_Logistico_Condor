@@ -50,7 +50,7 @@ public partial class App : Application
         // MAESTRO, sin pedir usuario ni contraseña.
         var comprobantes = new ComprobanteRepositorio(Conexiones);
         _vm = new MainViewModel(new ProductoRepositorio(Conexiones), new ClienteRepositorio(Conexiones), comprobantes,
-            new ProveedorRepositorio(Conexiones));
+            new ProveedorRepositorio(Conexiones), new CompraRepositorio(Conexiones));
         _vm.IniciarSesion(Sesion.Local(nombreEquipo));
 
         // T-06: cada 5 s se comprueba la PC principal; si no responde se
