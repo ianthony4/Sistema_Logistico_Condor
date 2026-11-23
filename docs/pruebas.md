@@ -1,11 +1,11 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
 | `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
@@ -216,6 +216,28 @@ PC, **Proformas (F7)**, buscar por el RUC, **Convertir en venta (Enter)**: el
 detalle aparece en Nueva venta con el aviso «Venta desde la proforma…» y
 Factura elegida; **F10** emite la factura. Volver a F7: la proforma dice
 «Convertida en F001-…» y el botón Convertir queda deshabilitado.
+
+## Historial de ventas (T-78)
+
+`Aceptacion/HU18_HistorialTests` vende a un vecino (una boleta aceptada por
+la SUNAT falsa y otra pendiente, sin internet) y comprueba que el Historial
+(F5) filtrado por su DNI muestra solo sus dos comprobantes, del más reciente
+al más antiguo, con su estado ante la SUNAT y el total del período. Busca
+también por el nombre escrito sin tildes y por el número; por rango de fechas
+(una venta pasada a la semana anterior no sale en «hoy» y sí en ese rango) y
+por tipo (nota de venta). Por último, en otra pantalla reimprime una boleta
+desde el Historial: el ticket sale marcado «COPIA - REIMPRESIÓN», con el
+detalle completo y el cliente, y la base anota la segunda impresión.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU18"
+```
+
+Prueba manual (Definition of Done de HU-18): **Historial (F5)** abre con las
+ventas de hoy y su total sobre la lista. Cambiar **Desde**/**Hasta**, el
+**Tipo** o escribir un DNI, RUC, nombre o número y pulsar **Buscar** (Enter);
+**Este mes** y **Todo** cambian el período de un clic. Elegir un comprobante y
+**Reimprimir (F11)**: el ticket sale como copia.
 
 ## Antes de mover una tarjeta a *Hecho*
 
