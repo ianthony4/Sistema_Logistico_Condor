@@ -1,4 +1,4 @@
-<!-- Historial (F5) en el panel derecho de la ventana principal (T-73). -->
+<!-- Historial de ventas (F5, HU-18) en el panel derecho de la ventana principal. -->
 <UserControl x:Class="Condor.Escritorio.Vistas.Modulos.HistorialVista"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -17,11 +17,60 @@
                            HorizontalAlignment="Center" />
             </Border>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Últimos comprobantes" FontSize="20" FontWeight="Bold" />
-                <TextBlock Text="Elija el comprobante y pulse Reimprimir (F11). Los que no salieron dicen «Sin imprimir». La columna SUNAT dice si ya fue aceptado; los pendientes se reenvían solos."
-                           Foreground="{StaticResource TextoSuave}" FontSize="13" />
+                <TextBlock Text="Historial de ventas" FontSize="20" FontWeight="Bold" />
+                <TextBlock Text="Filtre por fechas, tipo, cliente o número. Elija el comprobante y pulse Reimprimir (F11): sale marcado como copia. La columna SUNAT dice si ya fue aceptado; los pendientes se reenvían solos."
+                           Foreground="{StaticResource TextoSuave}" FontSize="13" TextWrapping="Wrap" />
             </StackPanel>
         </DockPanel>
+
+        <!-- Filtros (HU-18, T-76): Enter en cualquier campo busca. -->
+        <Border DockPanel.Dock="Top" Margin="28,0,28,12" Padding="16,12" CornerRadius="6" Background="{StaticResource SuperficieAlterna}">
+            <StackPanel>
+                <WrapPanel>
+                    <WrapPanel.Resources>
+                        <Style TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Setter Property="Padding" Value="0,0,8,0" />
+                            <Setter Property="FontSize" Value="13" />
+                        </Style>
+                    </WrapPanel.Resources>
+                    <WrapPanel.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding ActualizarCommand}" />
+                    </WrapPanel.InputBindings>
+
+                    <Label Content="_Desde" Target="{Binding ElementName=CampoDesde}" />
+                    <DatePicker x:Name="CampoDesde" Width="135" Height="36" Margin="0,0,16,0" VerticalContentAlignment="Center"
+                                SelectedDate="{Binding Desde}" SelectedDateFormat="Short" />
+                    <Label Content="_Hasta" Target="{Binding ElementName=CampoHasta}" />
+                    <DatePicker x:Name="CampoHasta" Width="135" Height="36" Margin="0,0,16,0" VerticalContentAlignment="Center"
+                                SelectedDate="{Binding Hasta}" SelectedDateFormat="Short" />
+                    <Label Content="_Tipo" Target="{Binding ElementName=CampoTipo}" />
+                    <ComboBox x:Name="CampoTipo" Width="160" Height="36" Margin="0,0,16,0" VerticalContentAlignment="Center"
+                              ItemsSource="{Binding OpcionesTipo}" SelectedItem="{Binding Tipo}" DisplayMemberPath="Nombre" />
+                    <Label Content="_Cliente o número" Target="{Binding ElementName=CampoTexto}" />
+                    <TextBox x:Name="CampoTexto" Width="230" Height="36" Margin="0,0,12,0" VerticalContentAlignment="Center"
+                             Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="DNI o RUC (o sus primeros dígitos), parte del nombre, o el número: B001-12 o 12." />
+                    <Button Height="36" Padding="14,0" Margin="0,0,8,0" Style="{StaticResource BotonPrincipal}" Command="{Binding ActualizarCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE721;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                            <AccessText Text="_Buscar" />
+                        </StackPanel>
+                    </Button>
+                    <Button Height="36" Padding="12,0" Margin="0,0,8,0" Content="H_oy" Command="{Binding HoyCommand}" />
+                    <Button Height="36" Padding="12,0" Margin="0,0,8,0" Content="Este _mes" Command="{Binding MesCommand}" />
+                    <Button Height="36" Padding="12,0" Content="T_odo" Command="{Binding LimpiarCommand}"
+                            ToolTip="Quitar los filtros: todo el historial, del más reciente al más antiguo." />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource TextoError}" Text="{Binding ErrorFiltro}" Margin="0,8,0,0"
+                           Visibility="{Binding ErrorFiltro, Converter={StaticResource NuloAOculto}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Cuántos y cuánto vendido en el período (HU-18, criterio 1). -->
+        <TextBlock DockPanel.Dock="Top" Margin="30,0,28,10" FontSize="15" FontWeight="SemiBold"
+                   Foreground="{StaticResource Acento}" Text="{Binding Resumen}"
+                   Visibility="{Binding Resumen, Converter={StaticResource NuloAOculto}}" />
 
         <!-- Acciones. -->
         <Border DockPanel.Dock="Bottom" Padding="28,14" Background="{StaticResource SuperficieAlterna}"
@@ -67,6 +116,7 @@
                       ColumnHeaderStyle="{StaticResource CabeceraTabla}" CellStyle="{StaticResource CeldaTabla}"
                       RowStyle="{StaticResource FilaTabla}">
                 <DataGrid.Columns>
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding TipoCorto}" Width="120" />
                     <DataGridTextColumn Header="Número" Binding="{Binding NumeroCompleto}" Width="150" />
                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha.LocalDateTime, StringFormat='dd/MM/yyyy HH:mm'}" Width="170" />
                     <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente.Nombre, FallbackValue='Clientes varios'}" Width="*" />
@@ -124,6 +174,13 @@
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding EstadoSunat}" Value="PENDIENTE">
                                                     <Setter Property="Text" Value="Pendiente" />
+                                                </DataTrigger>
+                                                <!-- Notas de venta y proformas no van a la SUNAT (HU-08, HU-09). Va al final para ganarle a PENDIENTE. -->
+                                                <DataTrigger Binding="{Binding EsElectronico}" Value="False">
+                                                    <Setter Property="Text" Value="No aplica" />
+                                                    <Setter Property="Foreground" Value="{StaticResource TextoTenue}" />
+                                                    <Setter Property="FontWeight" Value="Normal" />
+                                                    <Setter Property="ToolTip" Value="Documento interno: no se envía a la SUNAT." />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

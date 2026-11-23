@@ -73,6 +73,16 @@ public sealed class Comprobante
     /// </summary>
     public bool EsElectronico => Entidades.TipoComprobante.EsElectronico(TipoComprobante);
 
+    /// <summary>Nombre corto para las listas: Boleta, Factura, Nota de venta o Proforma.</summary>
+    public string TipoCorto => TipoComprobante switch
+    {
+        Entidades.TipoComprobante.Boleta => "Boleta",
+        Entidades.TipoComprobante.Factura => "Factura",
+        Entidades.TipoComprobante.NotaVenta => "Nota de venta",
+        Entidades.TipoComprobante.Proforma => "Proforma",
+        _ => "Comprobante",
+    };
+
     /// <summary>Nombre del documento tal como se imprime.</summary>
     public string NombreTipo => TipoComprobante switch
     {

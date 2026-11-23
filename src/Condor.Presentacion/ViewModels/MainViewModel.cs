@@ -356,8 +356,9 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Últimos comprobantes para reimprimir (F5, HU-12) y reenviar los
-    /// pendientes a la SUNAT (HU-17); null si no hay ticketera ni comprobantes.
+    /// Historial de ventas (F5): filtros por fecha, tipo y cliente (HU-18),
+    /// reimprimir (HU-12) y reenviar los pendientes a la SUNAT (HU-17); null
+    /// si no hay ticketera ni comprobantes.
     /// </summary>
     public ComprobantesRecientesViewModel? CrearComprobantesRecientes() =>
         _comprobantes is null || Impresion is null ? null : new ComprobantesRecientesViewModel(_comprobantes, Impresion, ReenvioSunat);
