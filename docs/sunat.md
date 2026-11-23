@@ -14,6 +14,11 @@ que Greenter / sunat-manager:
 | 5. Guardar estado, XML firmado y CDR | `EnvioSunatRepositorio` (tabla `comprobante_sunat`, V007) | T-45 |
 | 6. Aviso en la pantalla de venta y en el Historial | `EnvioSunatViewModel`, `ComprobantesRecientesViewModel` | T-47, T-48 |
 | 7. Reenvío automático de los pendientes | `ReenvioPendientes`, `ReenvioSunatViewModel` (reserva en `comprobante_sunat`, V009) | T-55 a T-58 |
+| 8. Consulta del CDR de un comprobante ya registrado (`getStatusCdr`) | `ClienteSunatSoap.ConsultarCdrAsync`, `ServicioEnvioSunat` | T-84 |
+
+Las notas de venta (`NV01`, HU-08) y las proformas (`PR01`, HU-09) son
+documentos internos: se imprimen pero **no se envían** a la SUNAT ni cuentan
+como pendientes; en el Historial su columna SUNAT dice «No aplica».
 
 El envío corre en paralelo con la impresión: **el ticket sale aunque no haya
 internet** y el vendedor puede seguir vendiendo.
@@ -73,11 +78,20 @@ para enviar una boleta o factura. En el Historial (F5) el botón **Reenviar a
 la SUNAT** hace una vuelta en el acto. Las PC sin la sección `Sunat` solo
 muestran cuántos quedan.
 
-\* Limitación conocida: si la SUNAT llegó a recibir un comprobante pero su
-respuesta se perdió, al reenviarlo responde con un código de «ya registrado»
-(1033) y el comprobante sigue pendiente. Consultar su CDR con `getStatusCdr`
-queda para un próximo sprint; mientras tanto se verifica en la consulta de
-comprobantes de SUNAT Operaciones en Línea.
+### Comprobante que la SUNAT ya tenía (código 1033, T-84)
+
+Si la SUNAT llegó a recibir un comprobante pero su respuesta se perdió (se
+cortó internet justo después del envío), al reenviarlo responde 1033 «El
+comprobante fue registrado previamente». Desde la versión 0.5.0 el sistema no
+lo deja pendiente: pide su CDR con la operación `getStatusCdr` del servicio
+`billConsultService` (con el mismo usuario y clave SOL) y guarda el estado que
+dice (aceptado, observado o rechazado). Si la SUNAT no entrega el CDR (códigos
+0011 o 0012) queda pendiente con ese motivo.
+
+\* El ambiente beta **no tiene** servicio de consulta: allí un 1033 queda
+pendiente con el aviso «En beta no hay consulta de CDR»; se verifica en la
+consulta de comprobantes de SUNAT Operaciones en Línea. En producción se usa
+`https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService`.
 
 ## Prueba manual (Definition of Done de HU-07)
 

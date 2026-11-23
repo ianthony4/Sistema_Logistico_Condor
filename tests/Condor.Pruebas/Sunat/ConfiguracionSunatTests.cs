@@ -94,7 +94,20 @@ public class ConfiguracionSunatTests : IDisposable
         Assert.Throws<CertificadoInvalidoException>(() => config.CargarCertificado("20600000005"));
     }
 
+    [Fact]
+    public void El_CDR_se_consulta_en_produccion_y_en_beta_no_hay_servicio()
+    {
+        var produccion = new ConfiguracionSunat { Ambiente = "Produccion" };
+        var beta = new ConfiguracionSunat();
+        var prueba = new ConfiguracionSunat { UrlConsulta = "https://consulta.prueba/billConsultService" };
+
+        Assert.Equal(ConfiguracionSunat.UrlConsultaProduccion, produccion.UrlConsultaServicio);
+        Assert.Null(beta.UrlConsultaServicio);
+        Assert.Equal("https://consulta.prueba/billConsultService", prueba.UrlConsultaServicio);
+    }
+
     [Theory]
+    [InlineData("""{ "Sunat": { "UrlConsulta": "no es url" } }""", "UrlConsulta")]
     [InlineData("""{ "Sunat": { "Ambiente": "Pruebas" } }""", "Ambiente")]
     [InlineData("""{ "Sunat": { "EsperaSegundos": 1 } }""", "EsperaSegundos")]
     [InlineData("""{ "Sunat": { "Url": "no es url" } }""", "Url")]
