@@ -8,10 +8,15 @@ using Condor.Dominio.Sunat;
 
 namespace Condor.Sunat;
 
+/// <summary>Respuesta de getStatusCdr: el código de la consulta y, si existe, el ZIP del CDR.</summary>
+/// <param name="Codigo">0001 a 0004 si el comprobante existe; 0011 o 0012 si no está o no tiene CDR.</param>
+public sealed record EstadoCdr(string Codigo, string Mensaje, byte[]? CdrZip);
+
 /// <summary>
-/// Cliente SOAP 1.1 del servicio billService de la SUNAT (HU-07, T-44):
-/// operación sendBill con la cabecera WS-Security (usuario RUC+SOL y clave en
-/// texto). Equivale a SoapClient + BillSender de greenter.
+/// Cliente SOAP 1.1 de los servicios de la SUNAT (HU-07, T-44): operación
+/// sendBill de billService y, desde el Sprint 5, getStatusCdr de
+/// billConsultService (T-84), con la cabecera WS-Security (usuario RUC+SOL y
+/// clave en texto). Equivale a SoapClient, BillSender y ConsultCdrService de greenter.
 /// </summary>
 public sealed class ClienteSunatSoap
 {
@@ -47,14 +52,49 @@ public sealed class ClienteSunatSoap
     public async Task<byte[]> EnviarAsync(string nombreArchivo, string xmlFirmado, CancellationToken ct = default)
     {
         var zip = Comprimir(nombreArchivo + ".xml", xmlFirmado);
-        var sobre = Sobre(nombreArchivo + ".zip", zip);
+        var body = await PedirAsync(_url, "sendBill",
+            $"<fileName>{SecurityElement.Escape(nombreArchivo + ".zip")}</fileName>"
+            + $"<contentFile>{Convert.ToBase64String(zip)}</contentFile>", ct);
+
+        var cdr = body.Descendants().FirstOrDefault(e => e.Name.LocalName == "applicationResponse")?.Value;
+        if (string.IsNullOrWhiteSpace(cdr))
+            throw new SunatFaultException("CDR", "La respuesta de la SUNAT no incluyó el CDR.");
+        return Convert.FromBase64String(cdr.Trim());
+    }
+
+    /// <summary>
+    /// Consulta el CDR de un comprobante que la SUNAT ya recibió (getStatusCdr,
+    /// T-84): se usa cuando al reenviarlo responde 1033 «registrado
+    /// previamente». Lanza las mismas excepciones que <see cref="EnviarAsync"/>.
+    /// </summary>
+    public async Task<EstadoCdr> ConsultarCdrAsync(string url, string ruc, string tipo, string serie, long numero,
+        CancellationToken ct = default)
+    {
+        var body = await PedirAsync(url, "getStatusCdr",
+            $"<rucComprobante>{SecurityElement.Escape(ruc)}</rucComprobante>"
+            + $"<tipoComprobante>{SecurityElement.Escape(tipo)}</tipoComprobante>"
+            + $"<serieComprobante>{SecurityElement.Escape(serie)}</serieComprobante>"
+            + $"<numeroComprobante>{numero}</numeroComprobante>", ct);
+
+        var estado = body.Descendants().FirstOrDefault(e => e.Name.LocalName == "statusCdr")
+                     ?? throw new SunatFaultException("CDR", "La respuesta de la consulta no incluyó statusCdr.");
+        string? Valor(string nombre) => estado.Elements().FirstOrDefault(e => e.Name.LocalName == nombre)?.Value.Trim();
+        var contenido = Valor("content");
+        return new EstadoCdr(Valor("statusCode") ?? string.Empty, Valor("statusMessage") ?? string.Empty,
+            string.IsNullOrEmpty(contenido) ? null : Convert.FromBase64String(contenido));
+    }
+
+    /// <summary>Envía la operación SOAP y devuelve el Body de la respuesta, o lanza la excepción que corresponda.</summary>
+    private async Task<XElement> PedirAsync(string url, string operacion, string parametros, CancellationToken ct)
+    {
+        var sobre = Sobre(operacion, parametros);
         UltimoEnvio = sobre.Replace(SecurityElement.Escape(_clave) ?? string.Empty, "*****");
 
-        using var solicitud = new HttpRequestMessage(HttpMethod.Post, _url)
+        using var solicitud = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(sobre, Encoding.UTF8, "text/xml"),
         };
-        solicitud.Headers.Add("SOAPAction", "\"urn:sendBill\"");
+        solicitud.Headers.Add("SOAPAction", $"\"urn:{operacion}\"");
 
         HttpResponseMessage respuesta;
         string cuerpo;
@@ -88,7 +128,7 @@ public sealed class ClienteSunatSoap
         return memoria.ToArray();
     }
 
-    private string Sobre(string nombreZip, byte[] zip) =>
+    private string Sobre(string operacion, string parametros) =>
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         + $"<soapenv:Envelope xmlns:soapenv=\"{Soap}\" xmlns:ser=\"{Servicio}\">"
         + "<soapenv:Header>"
@@ -97,13 +137,10 @@ public sealed class ClienteSunatSoap
         + $"<wsse:Password Type=\"{TipoClave}\">{SecurityElement.Escape(_clave)}</wsse:Password>"
         + "</wsse:UsernameToken></wsse:Security>"
         + "</soapenv:Header>"
-        + "<soapenv:Body><ser:sendBill>"
-        + $"<fileName>{SecurityElement.Escape(nombreZip)}</fileName>"
-        + $"<contentFile>{Convert.ToBase64String(zip)}</contentFile>"
-        + "</ser:sendBill></soapenv:Body>"
+        + $"<soapenv:Body><ser:{operacion}>{parametros}</ser:{operacion}></soapenv:Body>"
         + "</soapenv:Envelope>";
 
-    private static byte[] LeerRespuesta(HttpStatusCode estado, string cuerpo)
+    private static XElement LeerRespuesta(HttpStatusCode estado, string cuerpo)
     {
         var inicio = cuerpo.IndexOf('<');
         if (inicio < 0)
@@ -142,10 +179,7 @@ public sealed class ClienteSunatSoap
             throw new SunatFaultException(numero >= 0 ? numero.ToString("0000") : codigo, mensaje);
         }
 
-        var cdr = body.Descendants().FirstOrDefault(e => e.Name.LocalName == "applicationResponse")?.Value;
-        if (string.IsNullOrWhiteSpace(cdr))
-            throw new SunatFaultException("CDR", "La respuesta de la SUNAT no incluyó el CDR.");
-        return Convert.FromBase64String(cdr.Trim());
+        return body;
     }
 
     private static Exception SinXml(HttpStatusCode estado) => (int)estado switch

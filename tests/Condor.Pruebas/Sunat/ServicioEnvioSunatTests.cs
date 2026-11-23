@@ -113,6 +113,121 @@ public class ServicioEnvioSunatTests
         Assert.Contains("*****", servicio.UltimoEnvio);
     }
 
+    // T-84: la SUNAT ya tenía el comprobante (1033) y se consulta su CDR.
+
+    private const string UrlConsultaPrueba = "https://consulta.prueba/billConsultService";
+
+    [Fact]
+    public async Task Si_la_SUNAT_ya_lo_tenia_registrado_consulta_su_CDR_y_lo_guarda_aceptado()
+    {
+        var sunat = new SunatSimulada(p => EsConsulta(p)
+            ? StatusCdr("0004", "La constancia existe", LectorCdrTests.CdrXml("0", "La Boleta numero B001-12, ha sido aceptada"))
+            : Fault("soap-env:Client.1033", "El comprobante fue registrado previamente con otros datos"));
+        var servicio = new ServicioEnvioSunat(ConConsulta(), new HttpClient(sunat), CertificadoDigital.Autofirmado);
+
+        var respuesta = await servicio.EnviarAsync(Empresa(), Boleta());
+
+        Assert.Equal(2, sunat.Pedidos.Count);
+        var consulta = sunat.Pedidos[1];
+        Assert.Equal(UrlConsultaPrueba, consulta.Url);
+        Assert.Equal("\"urn:getStatusCdr\"", consulta.SoapAction);
+        var sobre = XDocument.Parse(consulta.Cuerpo);
+        string Valor(string nombre) => sobre.Descendants().Single(e => e.Name.LocalName == nombre).Value;
+        Assert.Equal("20600000005", Valor("rucComprobante"));
+        Assert.Equal("03", Valor("tipoComprobante"));
+        Assert.Equal("B001", Valor("serieComprobante"));
+        Assert.Equal("12", Valor("numeroComprobante"));
+        Assert.Equal("20600000005MODDATOS", Valor("Username"));
+
+        Assert.Equal(EstadoSunat.Aceptado, respuesta.Estado);
+        Assert.Equal("0", respuesta.Codigo);
+        Assert.NotNull(respuesta.CdrZip);
+        Assert.Equal("20600000005-03-B001-12", respuesta.NombreArchivo);
+    }
+
+    [Fact]
+    public async Task Si_el_CDR_consultado_es_de_rechazo_queda_rechazado()
+    {
+        var sunat = new SunatSimulada(p => EsConsulta(p)
+            ? StatusCdr("0004", "La constancia existe", LectorCdrTests.CdrXml("2017", "El numero de documento de identidad del receptor debe ser RUC"))
+            : Fault("soap-env:Client.1033", "El comprobante fue registrado previamente con otros datos"));
+
+        var respuesta = await new ServicioEnvioSunat(ConConsulta(), new HttpClient(sunat), CertificadoDigital.Autofirmado)
+            .EnviarAsync(Empresa(), Boleta());
+
+        Assert.Equal(EstadoSunat.Rechazado, respuesta.Estado);
+        Assert.Equal("2017", respuesta.Codigo);
+    }
+
+    [Fact]
+    public async Task Si_la_consulta_no_trae_el_CDR_queda_pendiente_con_el_motivo()
+    {
+        var sunat = new SunatSimulada(p => EsConsulta(p)
+            ? StatusCdr("0012", "No existe la constancia de recepcion", cdrXml: null)
+            : Fault("soap-env:Client.1033", "El comprobante fue registrado previamente con otros datos"));
+
+        var respuesta = await new ServicioEnvioSunat(ConConsulta(), new HttpClient(sunat), CertificadoDigital.Autofirmado)
+            .EnviarAsync(Empresa(), Boleta());
+
+        Assert.Equal(EstadoSunat.Pendiente, respuesta.Estado);
+        Assert.Equal("0012", respuesta.Codigo);
+        Assert.Contains("1033", respuesta.Descripcion);
+        Assert.Contains("No existe la constancia", respuesta.Descripcion);
+        Assert.NotNull(respuesta.XmlFirmado);
+    }
+
+    [Fact]
+    public async Task Si_la_consulta_responde_con_error_queda_pendiente()
+    {
+        var sunat = new SunatSimulada(p => EsConsulta(p)
+            ? Fault("soap-env:Client.0102", "Usuario o contraseña incorrectos")
+            : Fault("soap-env:Client.1033", "El comprobante fue registrado previamente con otros datos"));
+
+        var respuesta = await new ServicioEnvioSunat(ConConsulta(), new HttpClient(sunat), CertificadoDigital.Autofirmado)
+            .EnviarAsync(Empresa(), Boleta());
+
+        Assert.Equal(EstadoSunat.Pendiente, respuesta.Estado);
+        Assert.Contains("consulta de su CDR falló", respuesta.Descripcion);
+    }
+
+    [Fact]
+    public async Task En_beta_no_hay_consulta_de_CDR_y_queda_pendiente_explicandolo()
+    {
+        var sunat = new SunatSimulada(_ => Fault("soap-env:Client.1033", "El comprobante fue registrado previamente con otros datos"));
+
+        var respuesta = await Servicio(sunat).EnviarAsync(Empresa(), Boleta());
+
+        Assert.Single(sunat.Pedidos); // no intenta consultar
+        Assert.Equal(EstadoSunat.Pendiente, respuesta.Estado);
+        Assert.Equal("1033", respuesta.Codigo);
+        Assert.Contains("En beta no hay consulta de CDR", respuesta.Descripcion);
+    }
+
+    [Fact]
+    public async Task Sin_internet_al_consultar_avisa_que_la_SUNAT_no_esta_disponible()
+    {
+        var sunat = new SunatSimulada(p => EsConsulta(p)
+            ? throw new HttpRequestException("No such host is known.")
+            : Fault("soap-env:Client.1033", "El comprobante fue registrado previamente con otros datos"));
+
+        await Assert.ThrowsAsync<SunatNoDisponibleException>(() =>
+            new ServicioEnvioSunat(ConConsulta(), new HttpClient(sunat), CertificadoDigital.Autofirmado).EnviarAsync(Empresa(), Boleta()));
+    }
+
+    private static ConfiguracionSunat ConConsulta() =>
+        new() { UsuarioSol = "MODDATOS", ClaveSol = "moddatos", UrlConsulta = UrlConsultaPrueba };
+
+    private static bool EsConsulta(HttpRequestMessage pedido) =>
+        pedido.Headers.GetValues("SOAPAction").Single().Contains("getStatusCdr");
+
+    /// <summary>Respuesta SOAP de getStatusCdr, con el CDR en base64 si se da.</summary>
+    private static HttpResponseMessage StatusCdr(string codigo, string mensaje, string? cdrXml) => Xml(HttpStatusCode.OK,
+        "<soap-env:Envelope xmlns:soap-env=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap-env:Body>"
+        + "<ns2:getStatusCdrResponse xmlns:ns2=\"http://service.sunat.gob.pe\"><statusCdr>"
+        + (cdrXml is null ? string.Empty : $"<content>{Convert.ToBase64String(LectorCdrTests.Zip(cdrXml))}</content>")
+        + $"<statusCode>{codigo}</statusCode><statusMessage>{mensaje}</statusMessage>"
+        + "</statusCdr></ns2:getStatusCdrResponse></soap-env:Body></soap-env:Envelope>");
+
     [Fact]
     public void Sin_usuario_ni_clave_SOL_no_se_puede_crear()
     {

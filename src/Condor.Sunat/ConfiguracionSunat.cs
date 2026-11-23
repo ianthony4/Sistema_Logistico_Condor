@@ -8,7 +8,8 @@ namespace Condor.Sunat;
 /// SOL y el certificado digital. Solo la llena la PC que envía los
 /// comprobantes; si falta, se emite igual y quedan pendientes de envío.
 /// Desde el Sprint 4 dice también cada cuánto se reenvían los pendientes
-/// (HU-17, T-57).
+/// (HU-17, T-57); desde el Sprint 5, dónde consultar el CDR de un
+/// comprobante que la SUNAT ya tenía registrado (T-84).
 /// </summary>
 public sealed class ConfiguracionSunat
 {
@@ -19,6 +20,12 @@ public sealed class ConfiguracionSunat
     public const string UrlBeta = "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService";
 
     public const string UrlProduccion = "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService";
+
+    /// <summary>
+    /// Servicio billConsultService (getStatusCdr) de producción. La SUNAT no
+    /// tiene uno de pruebas: en beta no se puede consultar el CDR.
+    /// </summary>
+    public const string UrlConsultaProduccion = "https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService";
 
     private static readonly JsonSerializerOptions OpcionesJson = new()
     {
@@ -58,12 +65,18 @@ public sealed class ConfiguracionSunat
     /// <summary>Solo para pruebas: otra URL del servicio sendBill.</summary>
     public string? Url { get; set; }
 
+    /// <summary>Solo para pruebas: otra URL del servicio getStatusCdr.</summary>
+    public string? UrlConsulta { get; set; }
+
     public bool EsProduccion => Ambiente.Trim().StartsWith("prod", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True si hay usuario y clave SOL: se puede enviar.</summary>
     public bool Configurada => !string.IsNullOrWhiteSpace(UsuarioSol) && !string.IsNullOrWhiteSpace(ClaveSol);
 
     public string UrlServicio => !string.IsNullOrWhiteSpace(Url) ? Url! : EsProduccion ? UrlProduccion : UrlBeta;
+
+    /// <summary>Dónde consultar el CDR (getStatusCdr); null en beta, que no tiene ese servicio.</summary>
+    public string? UrlConsultaServicio => !string.IsNullOrWhiteSpace(UrlConsulta) ? UrlConsulta : EsProduccion ? UrlConsultaProduccion : null;
 
     public string NombreAmbiente => EsProduccion ? "producción" : "beta";
 
@@ -122,6 +135,8 @@ public sealed class ConfiguracionSunat
             throw new InvalidDataException($"{Seccion} > Certificado es obligatorio en producción: ponga la ruta del .pfx de la ferretería.");
         if (!string.IsNullOrWhiteSpace(Url) && !Uri.TryCreate(Url, UriKind.Absolute, out _))
             throw new InvalidDataException($"{Seccion} > Url no es una dirección válida.");
+        if (!string.IsNullOrWhiteSpace(UrlConsulta) && !Uri.TryCreate(UrlConsulta, UriKind.Absolute, out _))
+            throw new InvalidDataException($"{Seccion} > UrlConsulta no es una dirección válida.");
     }
 
     /// <summary>
