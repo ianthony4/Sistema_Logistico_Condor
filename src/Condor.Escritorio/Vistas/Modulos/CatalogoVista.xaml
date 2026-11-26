@@ -1,0 +1,102 @@
+<!-- Catálogo de productos (F2, HU-13, T-88) en el panel derecho de la ventana principal. -->
+<UserControl x:Class="Condor.Escritorio.Vistas.Modulos.CatalogoVista"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="New" />
+    </UserControl.InputBindings>
+
+    <UserControl.CommandBindings>
+        <CommandBinding Command="New" Executed="NuevoProducto_Click" />
+    </UserControl.CommandBindings>
+
+    <DockPanel>
+        <!-- Encabezado. -->
+        <DockPanel DockPanel.Dock="Top" Margin="28,24,28,16">
+            <Border DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="12" Background="{StaticResource AcentoSuave}"
+                    Margin="0,0,14,0">
+                <TextBlock Text="&#xE8FD;" Style="{StaticResource Icono}" FontSize="20" Foreground="{StaticResource Acento}"
+                           HorizontalAlignment="Center" />
+            </Border>
+            <Button DockPanel.Dock="Right" Style="{StaticResource BotonPrincipal}" Height="40" Padding="16,0"
+                    Click="NuevoProducto_Click" ToolTip="Registrar un producto (Ctrl+N).">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE710;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                    <TextBlock Text="Nuevo producto" />
+                </StackPanel>
+            </Button>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Catálogo de productos" FontSize="20" FontWeight="Bold" />
+                <TextBlock Text="Busque por nombre o pase el producto por el lector. Para venderlo con el lector, elíjalo y lea su código."
+                           Foreground="{StaticResource TextoSuave}" FontSize="13" TextWrapping="Wrap" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Búsqueda: Enter busca; vacío lista todo. -->
+        <DockPanel DockPanel.Dock="Top" Margin="28,0,28,14">
+            <Button DockPanel.Dock="Right" Margin="12,0,0,0" Height="40" Padding="16,0" Command="{Binding BuscarCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE721;" Style="{StaticResource Icono}" FontSize="13" Margin="0,0,8,0" />
+                    <TextBlock Text="Buscar" />
+                </StackPanel>
+            </Button>
+            <TextBox x:Name="CampoBuscar" FontSize="15" Height="40" VerticalContentAlignment="Center"
+                     Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Enter" Command="{Binding BuscarCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+        </DockPanel>
+
+        <!-- Pie: código de barras del producto elegido. -->
+        <Border DockPanel.Dock="Bottom" Padding="28,14" Background="{StaticResource SuperficieAlterna}"
+                BorderBrush="{StaticResource Borde}" BorderThickness="0,1,0,0">
+            <StackPanel>
+                <DockPanel>
+                    <Label DockPanel.Dock="Left" Content="Código de _barras" Target="{Binding ElementName=CampoCodigo}"
+                           VerticalAlignment="Center" Padding="0,0,12,0" />
+                    <TextBox DockPanel.Dock="Left" x:Name="CampoCodigo" Width="230" Height="38" FontSize="15" MaxLength="30"
+                             VerticalContentAlignment="Center" CharacterCasing="Upper"
+                             Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Con el producto elegido, páselo por el lector (o escriba el código) y Enter.">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding AsignarCodigoCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <Button DockPanel.Dock="Left" Height="38" Padding="14,0" Margin="10,0,0,0" Style="{StaticResource BotonPrincipal}"
+                            Command="{Binding AsignarCodigoCommand}">
+                        <AccessText Text="_Asignar (Enter)" />
+                    </Button>
+                    <Button DockPanel.Dock="Left" Height="38" Padding="14,0" Margin="8,0,0,0" Command="{Binding QuitarCodigoCommand}">
+                        <AccessText Text="_Quitar código" />
+                    </Button>
+                    <TextBlock Text="{Binding Mensaje}" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="13" Margin="16,0,12,0"
+                               Foreground="{StaticResource TextoSuave}" />
+                </DockPanel>
+                <TextBlock Style="{StaticResource TextoError}" Text="{Binding Error}" Margin="0,8,0,0"
+                           Visibility="{Binding Error, Converter={StaticResource NuloAOculto}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Productos, ordenados por nombre. -->
+        <Border Style="{StaticResource Tarjeta}" Margin="28,0,28,20">
+            <DataGrid x:Name="Lista" ItemsSource="{Binding Productos}" SelectedItem="{Binding Seleccionado}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserResizeRows="False"
+                      HeadersVisibility="Column" SelectionMode="Single" GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="{StaticResource Borde}" Background="Transparent" BorderThickness="0"
+                      FontSize="14" RowHeight="38" FocusVisualStyle="{x:Null}"
+                      ColumnHeaderStyle="{StaticResource CabeceraTabla}" CellStyle="{StaticResource CeldaTabla}"
+                      RowStyle="{StaticResource FilaTabla}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Nombre}" Width="*" />
+                    <DataGridTextColumn Header="Unidad" Binding="{Binding Unidad}" Width="90"
+                                        HeaderStyle="{StaticResource CabeceraNumero}" ElementStyle="{StaticResource Centrado}" />
+                    <DataGridTextColumn Header="Precio" Binding="{Binding Precio, StringFormat='S/ {0:0.00}'}" Width="110"
+                                        HeaderStyle="{StaticResource CabeceraDerecha}" ElementStyle="{StaticResource NumeroDerecha}" />
+                    <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras, TargetNullValue='—'}" Width="200" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </DockPanel>
+</UserControl>

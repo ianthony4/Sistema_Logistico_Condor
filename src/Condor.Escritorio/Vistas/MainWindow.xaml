@@ -31,6 +31,9 @@
         <DataTemplate DataType="{x:Type vm:ComprasViewModel}">
             <modulos:ComprasVista />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CatalogoViewModel}">
+            <modulos:CatalogoVista />
+        </DataTemplate>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -98,7 +101,8 @@
                         <TextBlock Text="Nueva venta" FontWeight="SemiBold" />
                     </DockPanel>
                 </Button>
-                <Button Style="{StaticResource BotonModulo}" Tag="&#xE8FD;" Focusable="False" CommandParameter="Catalogo">
+                <Button Style="{StaticResource BotonModulo}" Tag="&#xE8FD;" Focusable="False" CommandParameter="Catalogo"
+                        ToolTip="Catálogo: buscar productos y asignarles su código de barras.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F2" />
                         <TextBlock Text="Catálogo" />

@@ -252,6 +252,7 @@ public sealed class MainViewModel : ObservableObject
         Modulo.Respaldo => CrearRespaldo(),
         Modulo.Proformas => CrearProformas(),
         Modulo.Compras => CrearCompras(),
+        Modulo.Catalogo => CrearCatalogo(),
         _ => null,
     };
 
@@ -282,6 +283,22 @@ public sealed class MainViewModel : ObservableObject
             vm.CodigoBarras = codigo;
         else if (Buscador is { Sugerencias.Count: 0 } && !string.IsNullOrWhiteSpace(Buscador.Texto))
             vm.Nombre = Buscador.Texto.Trim();
+        return vm;
+    }
+
+    /// <summary>Módulo Catálogo (F2, HU-13, T-88); null si no hay repositorio de productos.</summary>
+    public CatalogoViewModel? CrearCatalogo()
+    {
+        if (_productos is null)
+            return null;
+
+        var vm = new CatalogoViewModel(_productos, () =>
+        {
+            var nuevo = new NuevoProductoViewModel(_productos);
+            nuevo.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+            return nuevo;
+        });
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
         return vm;
     }
 
