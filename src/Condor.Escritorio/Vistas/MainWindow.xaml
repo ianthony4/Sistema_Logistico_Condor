@@ -318,10 +318,10 @@
                             <TextBox x:Name="CampoProducto" FontSize="16" MinHeight="42" Padding="44,0,10,0"
                                      Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}"
                                      PreviewKeyDown="CampoProducto_PreviewKeyDown"
-                                     ToolTip="Escriba 3 letras o más del nombre del producto." />
+                                     ToolTip="Escriba 3 letras o más del nombre del producto, o pase el producto por el lector de código de barras." />
                             <TextBlock Text="&#xE721;" Style="{StaticResource Icono}" FontSize="17" Margin="14,0,0,0" IsHitTestVisible="False"
                                        HorizontalAlignment="Left" Foreground="{StaticResource Texto}" />
-                            <TextBlock Text="Buscar producto…  (cemento, clavo, tubo)" IsHitTestVisible="False"
+                            <TextBlock Text="Buscar producto…  (cemento, clavo, tubo) o pasar por el lector" IsHitTestVisible="False"
                                        Margin="44,0,10,0" VerticalAlignment="Center" FontSize="15"
                                        Foreground="{StaticResource TextoTenue}">
                                 <TextBlock.Style>
