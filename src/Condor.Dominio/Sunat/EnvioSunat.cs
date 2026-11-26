@@ -51,6 +51,12 @@ public sealed class RespuestaSunat
     /// <summary>ZIP del CDR (R-...zip) devuelto por la SUNAT; null si no lo envió.</summary>
     public byte[]? CdrZip { get; init; }
 
+    /// <summary>
+    /// Ticket de la API de guías (HU-10): la SUNAT recibe la guía y responde
+    /// después; con el ticket se consulta el CDR. Null en boletas y facturas.
+    /// </summary>
+    public string? Ticket { get; init; }
+
     public bool Aceptado => Estado is EstadoSunat.Aceptado or EstadoSunat.Observado;
 
     /// <summary>Texto corto para la pantalla de venta y el historial.</summary>

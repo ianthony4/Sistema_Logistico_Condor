@@ -16,6 +16,9 @@ erDiagram
     COMPROBANTE ||--o| COMPROBANTE_SUNAT : "se envía"
     COMPROBANTE |o--o| COMPROBANTE : "proforma convertida en (V011)"
     PRODUCTO ||--o{ COMPROBANTE_DETALLE : "se vende en"
+    SERIE ||--o{ GUIA_REMISION : "numera (T001)"
+    COMPROBANTE |o--o{ GUIA_REMISION : "sustenta"
+    GUIA_REMISION ||--|{ GUIA_DETALLE : "traslada"
     PROVEEDOR ||--o{ COMPRA : "entrega"
     TERMINAL ||--o{ COMPRA : "registra"
     COMPRA ||--|{ COMPRA_DETALLE : "contiene"
@@ -126,6 +129,33 @@ erDiagram
         boolean activo
         timestamptz creado_en
     }
+    GUIA_REMISION {
+        bigint id PK
+        int serie_id FK "T001 (tipo 09)"
+        bigint numero
+        date fecha_traslado
+        char motivo "catálogo 20: 01 venta, 02 compra, 04 entre establecimientos, 13 otros"
+        char modalidad "catálogo 18: 01 público, 02 privado"
+        varchar destinatario_documento
+        char partida_ubigeo
+        char llegada_ubigeo
+        numeric peso_bruto_kg
+        varchar transportista_ruc "transporte público"
+        varchar vehiculo_placa "transporte privado"
+        varchar conductor_licencia "transporte privado"
+        bigint comprobante_id FK "factura o boleta que sustenta el traslado"
+        varchar estado_sunat
+        varchar ticket "de la API de guías de la SUNAT"
+        bytea cdr_zip
+    }
+    GUIA_DETALLE {
+        bigint id PK
+        bigint guia_id FK
+        int item
+        bigint producto_id FK
+        varchar descripcion
+        numeric cantidad
+    }
     COMPRA {
         bigint id PK
         bigint proveedor_id FK
@@ -181,6 +211,8 @@ migración V012 (HU-11).
 | `proforma_id` es único (índice parcial `ux_comprobante_proforma`) y el trigger `ck_proforma` solo deja convertir una proforma vigente. | Si dos PC convierten la misma proforma a la vez, una sola emite; la otra recibe el aviso y no gasta número (HU-09). |
 | `compra` es única por `(proveedor_id, tipo_documento, serie, numero)` (V012). | El mismo comprobante del proveedor no se registra dos veces aunque dos PC lo intenten a la vez; el mismo número de otro proveedor sí (HU-11). |
 | `compra_detalle.costo_unitario` admite 4 decimales. | Algunos productos se compran por millar o por caja y su costo unitario tiene más de dos decimales; el importe sí va a céntimos. |
+| La guía de remisión tiene su tabla `guia_remision` con la respuesta de la SUNAT en la misma fila (V013). | La guía no tiene importes ni va en el total de ventas; se envía por la API REST de guías, que responde con un ticket y luego el CDR (HU-10). |
+| `ck_guia_transporte` exige el RUC del transportista (público) o la placa, el DNI y la licencia del conductor (privado). | La SUNAT rechaza la guía sin esos datos; la base central no la deja guardar aunque una PC tenga una versión vieja (HU-10). |
 | `respaldo` guarda dónde quedó cada respaldo, no el archivo (V010). | El archivo vive en el disco externo; la base solo necesita saber cuándo fue el último para el aviso de las 24 horas en las tres PC (HU-15). |
 | `empresa` tiene una sola fila (`id = 1`). | Las tres PC imprimen la misma cabecera; se corrige con un `UPDATE`, sin recompilar. |
 
