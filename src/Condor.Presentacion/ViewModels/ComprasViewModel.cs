@@ -9,7 +9,8 @@ namespace Condor.Presentacion.ViewModels;
 /// <summary>
 /// Ventana Compras (F4, HU-11, T-82): compras a los proveedores por rango de
 /// fechas del comprobante y por proveedor, con el total de egresos del
-/// período. Al elegir una compra se ve su detalle.
+/// período. Al elegir una compra se ve su detalle; + Nueva compra abre el
+/// diálogo para registrar otra (T-81).
 /// </summary>
 public sealed class ComprasViewModel : ObservableObject
 {
@@ -17,6 +18,7 @@ public sealed class ComprasViewModel : ObservableObject
 
     private readonly ICompraRepositorio _compras;
     private readonly Func<DateOnly> _hoy;
+    private readonly Func<NuevaCompraViewModel>? _nuevaCompra;
     private DateTime? _desde;
     private DateTime? _hasta;
     private string _proveedor = string.Empty;
@@ -27,10 +29,12 @@ public sealed class ComprasViewModel : ObservableObject
     private string? _mensaje;
 
     /// <param name="hoy">Fecha de hoy en Perú; por defecto la del reloj de la PC.</param>
-    public ComprasViewModel(ICompraRepositorio compras, Func<DateOnly>? hoy = null)
+    /// <param name="nuevaCompra">Crea el diálogo Nueva compra; null si no se pueden registrar compras.</param>
+    public ComprasViewModel(ICompraRepositorio compras, Func<DateOnly>? hoy = null, Func<NuevaCompraViewModel>? nuevaCompra = null)
     {
         _compras = compras;
         _hoy = hoy ?? (() => EmisionComprobante.FechaPeru(DateTimeOffset.Now));
+        _nuevaCompra = nuevaCompra;
 
         // Al abrir: las compras del mes en curso.
         var dia = _hoy();
@@ -112,6 +116,9 @@ public sealed class ComprasViewModel : ObservableObject
         private set => SetProperty(ref _mensaje, value);
     }
 
+    /// <summary>Hay proveedores y catálogo: se muestra + Nueva compra.</summary>
+    public bool PuedeRegistrar => _nuevaCompra is not null;
+
     public AsyncRelayCommand BuscarCommand { get; }
 
     /// <summary>Compras del mes en curso.</summary>
@@ -160,6 +167,31 @@ public sealed class ComprasViewModel : ObservableObject
             Mensaje = "Sin conexión con la PC principal: no se pueden listar las compras.";
             ConexionPerdida?.Invoke();
         }
+    }
+
+    /// <summary>Diálogo Nueva compra; null si esta ventana no puede registrar compras.</summary>
+    public NuevaCompraViewModel? CrearNuevaCompra()
+    {
+        var vm = _nuevaCompra?.Invoke();
+        if (vm is not null)
+            vm.ConexionPerdida += () => ConexionPerdida?.Invoke();
+        return vm;
+    }
+
+    /// <summary>
+    /// Tras guardar en el diálogo: se muestra el período de la compra, queda
+    /// seleccionada y el total de egresos ya la incluye.
+    /// </summary>
+    public async Task CompraRegistradaAsync(Compra compra)
+    {
+        if (Desde is { } d && compra.FechaEmision < DateOnly.FromDateTime(d))
+            Desde = compra.FechaEmision.ToDateTime(TimeOnly.MinValue);
+        if (Hasta is { } h && compra.FechaEmision > DateOnly.FromDateTime(h))
+            Hasta = compra.FechaEmision.ToDateTime(TimeOnly.MinValue);
+        Proveedor = string.Empty;
+        await BuscarAsync();
+        Seleccionada = Compras.FirstOrDefault(c => c.Id == compra.Id) ?? Seleccionada;
+        Mensaje = $"Compra registrada: {compra.DocumentoCompleto} de {compra.Proveedor?.RazonSocial} por S/ {compra.Total:0.00}. Ya se ve en las tres PC.";
     }
 
     private async Task PeriodoAsync(DateOnly desde, DateOnly hasta)

@@ -322,8 +322,16 @@ public sealed class MainViewModel : ObservableObject
         if (_compras is null)
             return null;
 
-        var vm = new ComprasViewModel(_compras);
+        var vm = new ComprasViewModel(_compras, nuevaCompra: _proveedores is null || _productos is null ? null : (Func<NuevaCompraViewModel>)CrearNuevaCompra);
         vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        return vm;
+    }
+
+    /// <summary>Diálogo Nueva compra (HU-11, T-81); lo abre el módulo Compras.</summary>
+    private NuevaCompraViewModel CrearNuevaCompra()
+    {
+        var vm = new NuevaCompraViewModel(_compras!, _proveedores!, _productos!, () => Sesion);
+        vm.Buscador.Espera = Buscador?.Espera ?? vm.Buscador.Espera;
         return vm;
     }
 
