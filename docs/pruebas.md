@@ -1,11 +1,11 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78, T-83)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`, `HU11_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
 | `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
@@ -238,6 +238,28 @@ ventas de hoy y su total sobre la lista. Cambiar **Desde**/**Hasta**, el
 **Tipo** o escribir un DNI, RUC, nombre o número y pulsar **Buscar** (Enter);
 **Este mes** y **Todo** cambian el período de un clic. Elegir un comprobante y
 **Reimprimir (F11)**: el ticket sale como copia.
+
+## Compras a proveedores (T-83)
+
+`Aceptacion/HU11_ComprasTests` registra desde el diálogo Nueva compra una
+factura de un proveedor con dos productos y comprueba que se guarda con su
+total, la operación gravada y el IGV, que aparece seleccionada en Compras (F4)
+con su detalle y que anota la PC que la registró. Si otra PC vuelve a digitar
+la misma factura (aunque cambie las mayúsculas de la serie) no se registra y
+el aviso dice cuál es; si dos PC la guardan a la vez, solo queda una. Al
+filtrar por el RUC del proveedor y los últimos 30 días se ven solo sus
+compras de ese período y el total de egresos; con **Todo**, todas las suyas.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU11"
+```
+
+Prueba manual (Definition of Done de HU-11): **Compras (F4)** > **Nueva
+compra** (Alt+N). Digitar el RUC de un proveedor registrado y Enter; elegir
+Factura, serie, número y fecha; agregar productos con su costo (Enter pasa de
+la cantidad al costo y agrega) y **Guardar compra**. La compra aparece
+seleccionada con su detalle y el total de egresos del mes la incluye. Volver
+a registrar la misma factura: el diálogo avisa que ya está registrada.
 
 ## Antes de mover una tarjeta a *Hecho*
 
