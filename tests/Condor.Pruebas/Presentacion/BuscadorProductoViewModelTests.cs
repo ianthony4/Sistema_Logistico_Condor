@@ -123,5 +123,11 @@ public class BuscadorProductoViewModelTests
 
         public Task<IReadOnlyList<Producto>> ListarAsync(CancellationToken ct = default) =>
             throw new NotSupportedException();
+
+        public Task<Producto?> BuscarPorCodigoBarrasAsync(string codigo, CancellationToken ct = default) =>
+            throw new InvalidOperationException("sin conexión");
+
+        public Task<Producto> AsignarCodigoBarrasAsync(long productoId, string? codigo, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 }

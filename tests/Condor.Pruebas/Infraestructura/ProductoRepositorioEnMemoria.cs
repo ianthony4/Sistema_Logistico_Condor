@@ -1,5 +1,6 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Validacion;
 
 namespace Condor.Pruebas.Infraestructura;
 
@@ -29,6 +30,10 @@ public sealed class ProductoRepositorioEnMemoria : IProductoRepositorio
         if (ErrorAlRegistrar is not null)
             throw ErrorAlRegistrar;
 
+        ValidadorProducto.Normalizar(producto);
+        if (producto.CodigoBarras is { } codigo && _productos.FirstOrDefault(p => p.CodigoBarras == codigo) is { } otro)
+            throw new CodigoBarrasDuplicadoException(codigo, otro.Nombre);
+
         producto.Id = _siguienteId++;
         _productos.Add(producto);
         return Task.FromResult(producto);
@@ -48,4 +53,23 @@ public sealed class ProductoRepositorioEnMemoria : IProductoRepositorio
 
     public Task<IReadOnlyList<Producto>> ListarAsync(CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Producto>>(_productos.OrderBy(p => p.Nombre).ToList());
+
+    public Task<Producto?> BuscarPorCodigoBarrasAsync(string codigo, CancellationToken ct = default)
+    {
+        var normalizado = ValidadorProducto.NormalizarCodigo(codigo);
+        return Task.FromResult(_productos.FirstOrDefault(p => normalizado is not null && p.CodigoBarras == normalizado));
+    }
+
+    public Task<Producto> AsignarCodigoBarrasAsync(long productoId, string? codigo, CancellationToken ct = default)
+    {
+        var normalizado = ValidadorProducto.NormalizarCodigo(codigo);
+        if (ValidadorProducto.ErrorCodigo(normalizado) is { } error)
+            throw new ProductoInvalidoException(new[] { error });
+        if (_productos.FirstOrDefault(p => normalizado is not null && p.CodigoBarras == normalizado && p.Id != productoId) is { } otro)
+            throw new CodigoBarrasDuplicadoException(normalizado!, otro.Nombre);
+
+        var producto = _productos.Single(p => p.Id == productoId);
+        producto.CodigoBarras = normalizado;
+        return Task.FromResult(producto);
+    }
 }

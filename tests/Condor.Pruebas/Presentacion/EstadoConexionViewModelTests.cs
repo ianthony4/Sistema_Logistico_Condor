@@ -94,5 +94,11 @@ public class EstadoConexionViewModelTests
 
         public Task<IReadOnlyList<Condor.Dominio.Entidades.Producto>> ListarAsync(CancellationToken ct = default) =>
             throw new NotSupportedException();
+
+        public Task<Condor.Dominio.Entidades.Producto?> BuscarPorCodigoBarrasAsync(string codigo, CancellationToken ct = default) =>
+            throw Caida();
+
+        public Task<Condor.Dominio.Entidades.Producto> AsignarCodigoBarrasAsync(long productoId, string? codigo, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 }

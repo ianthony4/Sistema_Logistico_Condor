@@ -16,6 +16,16 @@ public interface IProductoRepositorio
 
     /// <summary>Todo el catálogo activo, ordenado por nombre.</summary>
     Task<IReadOnlyList<Producto>> ListarAsync(CancellationToken ct = default);
+
+    /// <summary>Producto activo con ese código de barras (HU-13); null si ninguno lo tiene.</summary>
+    Task<Producto?> BuscarPorCodigoBarrasAsync(string codigo, CancellationToken ct = default);
+
+    /// <summary>
+    /// Pone (o quita, con null) el código de barras de un producto y lo
+    /// devuelve actualizado. Lanza CodigoBarrasDuplicadoException si el código
+    /// ya es de otro producto.
+    /// </summary>
+    Task<Producto> AsignarCodigoBarrasAsync(long productoId, string? codigo, CancellationToken ct = default);
 }
 
 /// <summary>
