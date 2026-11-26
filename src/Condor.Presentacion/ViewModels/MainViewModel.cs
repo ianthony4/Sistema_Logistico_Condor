@@ -1,5 +1,6 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Validacion;
 using Condor.Dominio.Ventas;
 using Condor.Presentacion.Mvvm;
 
@@ -165,6 +166,12 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Último código leído con el lector (HU-13); las pruebas lo esperan con await.</summary>
+    public Task<bool> UltimoEscaneo { get; private set; } = Task.FromResult(false);
+
+    /// <summary>Último código leído que no está en el catálogo; Nuevo producto lo propone.</summary>
+    public string? CodigoNoRegistrado { get; private set; }
+
     /// <summary>Última impresión lanzada al emitir; las pruebas la esperan con await.</summary>
     public Task UltimaImpresion { get; private set; } = Task.CompletedTask;
 
@@ -270,7 +277,10 @@ public sealed class MainViewModel : ObservableObject
 
         var vm = new NuevoProductoViewModel(_productos);
         vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
-        if (Buscador is { Sugerencias.Count: 0 } && !string.IsNullOrWhiteSpace(Buscador.Texto))
+        // HU-13: si lo último fue un código que no existe, se propone como código, no como nombre.
+        if (CodigoNoRegistrado is { } codigo && Buscador?.Texto.Trim().ToUpperInvariant() == codigo)
+            vm.CodigoBarras = codigo;
+        else if (Buscador is { Sugerencias.Count: 0 } && !string.IsNullOrWhiteSpace(Buscador.Texto))
             vm.Nombre = Buscador.Texto.Trim();
         return vm;
     }
@@ -422,6 +432,44 @@ public sealed class MainViewModel : ObservableObject
             AvisoRespaldo?.RespaldoGenerado(r);
         };
         return vm;
+    }
+
+    /// <summary>
+    /// El lector de código de barras escribió un código en el campo Producto y
+    /// Enter (HU-13, T-87): si el producto está en el catálogo, se agrega una
+    /// unidad al detalle (o se suma a su línea). Devuelve false si el texto no
+    /// es un código, para que el Enter siga eligiendo la sugerencia.
+    /// </summary>
+    public Task<bool> EscanearAsync(string texto) => UltimoEscaneo = EscanearInternoAsync(texto);
+
+    private async Task<bool> EscanearInternoAsync(string texto)
+    {
+        if (_productos is null || !ValidadorProducto.PareceCodigo(texto))
+            return false;
+
+        var codigo = ValidadorProducto.NormalizarCodigo(texto)!;
+        try
+        {
+            var producto = await _productos.BuscarPorCodigoBarrasAsync(codigo);
+            if (producto is null)
+            {
+                CodigoNoRegistrado = codigo;
+                Mensaje = $"El código {codigo} no está en el catálogo: pulse Nuevo producto (Ctrl+N) para registrarlo o asígnelo en Catálogo (F2).";
+                return true;
+            }
+
+            CodigoNoRegistrado = null;
+            Venta.ProductoPorAgregar = producto;
+            Venta.CantidadTexto = "1";
+            Venta.Agregar();
+            return true;
+        }
+        catch (SinConexionException)
+        {
+            Mensaje = $"Sin conexión con la PC principal: no se pudo leer el código {codigo}. Vuelva a pasarlo al recuperar la conexión.";
+            Conexion?.MarcarSinConexion();
+            return true;
+        }
     }
 
     /// <summary>Otra PC cambió el catálogo (aviso LISTEN/NOTIFY, T-13).</summary>

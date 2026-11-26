@@ -63,8 +63,11 @@
                       ItemsSource="{x:Static vm:NuevoProductoViewModel.Unidades}"
                       Text="{Binding Unidad, UpdateSourceTrigger=PropertyChanged}" />
 
-            <Label Grid.Row="6" Grid.ColumnSpan="3" Content="Código de barras" />
-            <TextBox Grid.Row="7" Grid.ColumnSpan="3" IsEnabled="False" Text="Opcional · se habilitará con el lector (HU-13)" />
+            <!-- HU-13: con el cursor aquí, pasar el producto por el lector. -->
+            <Label Grid.Row="6" Grid.ColumnSpan="3" Content="Código de _barras (opcional)" Target="{Binding ElementName=CampoCodigo}" />
+            <TextBox Grid.Row="7" Grid.ColumnSpan="3" x:Name="CampoCodigo" FontSize="15" MaxLength="30" CharacterCasing="Upper"
+                     Text="{Binding CodigoBarras, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Pase el producto por el lector o escriba el código impreso bajo las barras." />
         </Grid>
 
         <!-- Error de validación o de guardado. -->

@@ -7,7 +7,8 @@ using Condor.Presentacion.Mvvm;
 namespace Condor.Presentacion.ViewModels;
 
 /// <summary>
-/// Diálogo Nuevo producto (HU-01): nombre, precio con IGV y unidad.
+/// Diálogo Nuevo producto (HU-01): nombre, precio con IGV, unidad y, desde el
+/// Sprint 5, el código de barras que se lee con el lector (HU-13, T-87).
 /// </summary>
 public sealed class NuevoProductoViewModel : ObservableObject
 {
@@ -15,6 +16,7 @@ public sealed class NuevoProductoViewModel : ObservableObject
     private string _nombre = string.Empty;
     private string _precioTexto = string.Empty;
     private string _unidad = "UND";
+    private string _codigoBarras = string.Empty;
     private string? _error;
 
     public NuevoProductoViewModel(IProductoRepositorio productos)
@@ -60,6 +62,17 @@ public sealed class NuevoProductoViewModel : ObservableObject
         set => SetProperty(ref _unidad, value);
     }
 
+    /// <summary>Código de barras opcional: se pasa el producto por el lector con el cursor en el campo.</summary>
+    public string CodigoBarras
+    {
+        get => _codigoBarras;
+        set
+        {
+            if (SetProperty(ref _codigoBarras, value ?? string.Empty))
+                Error = null;
+        }
+    }
+
     /// <summary>Mensaje en rojo bajo el formulario; null si no hay error.</summary>
     public string? Error
     {
@@ -94,7 +107,10 @@ public sealed class NuevoProductoViewModel : ObservableObject
             return;
         }
 
-        var producto = ValidadorProducto.Normalizar(new Producto { Nombre = Nombre, Precio = precio, Unidad = Unidad });
+        var producto = ValidadorProducto.Normalizar(new Producto
+        {
+            Nombre = Nombre, Precio = precio, Unidad = Unidad, CodigoBarras = CodigoBarras,
+        });
         var errores = ValidadorProducto.Errores(producto);
         if (errores.Count > 0)
         {

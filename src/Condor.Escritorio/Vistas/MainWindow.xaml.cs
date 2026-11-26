@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using Condor.Dominio.Validacion;
 using Condor.Presentacion.ViewModels;
 
 namespace Condor.Escritorio.Vistas;
@@ -97,10 +98,22 @@ public partial class MainWindow : Window
 
     // Teclado del campo Producto: flecha abajo entra a la lista, Enter elige
     // la primera sugerencia y Esc cierra la lista. Así se vende sin mouse.
-    private void CampoProducto_PreviewKeyDown(object sender, KeyEventArgs e)
+    private async void CampoProducto_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         var buscador = Buscador;
-        if (buscador is null || !buscador.MostrarSugerencias)
+        if (buscador is null)
+            return;
+
+        // HU-13: el lector escribe el código y Enter; el producto se agrega solo.
+        if (e.Key == Key.Enter && Vm is { } vm && ValidadorProducto.PareceCodigo(buscador.Texto))
+        {
+            e.Handled = true;
+            await vm.EscanearAsync(buscador.Texto);
+            CampoProducto.Focus();
+            return;
+        }
+
+        if (!buscador.MostrarSugerencias)
             return;
 
         switch (e.Key)
