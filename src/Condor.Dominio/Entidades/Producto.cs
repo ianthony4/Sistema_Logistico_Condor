@@ -15,7 +15,10 @@ public sealed class Producto
     /// <summary>Unidad de medida: UND, KG, M, GAL, etc.</summary>
     public string Unidad { get; set; } = "UND";
 
-    /// <summary>Reservado para el lector de código de barras (HU-13, futuro).</summary>
+    /// <summary>
+    /// Código que lee el lector de código de barras (HU-13): EAN-13 del
+    /// fabricante o uno propio del local. Único en el catálogo; null si no tiene.
+    /// </summary>
     public string? CodigoBarras { get; set; }
 
     public bool Activo { get; set; } = true;

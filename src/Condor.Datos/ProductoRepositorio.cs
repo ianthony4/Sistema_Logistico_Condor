@@ -6,7 +6,9 @@ using Npgsql;
 namespace Condor.Datos;
 
 /// <summary>
-/// Catálogo de productos en la base de datos central (HU-01, HU-02).
+/// Catálogo de productos en la base de datos central (HU-01, HU-02). Desde el
+/// Sprint 5 busca y asigna el código de barras (HU-13, T-86): la columna
+/// codigo_barras ya era UNIQUE desde V001.
 /// </summary>
 public sealed class ProductoRepositorio : IProductoRepositorio
 {
@@ -47,6 +49,53 @@ public sealed class ProductoRepositorio : IProductoRepositorio
             // El índice único de la BD es la garantía real: dos PC podrían
             // intentar crear el mismo producto en el mismo instante.
             throw new ProductoDuplicadoException(producto.Nombre);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation
+                                           && ex.ConstraintName == RestriccionCodigo)
+        {
+            throw new CodigoBarrasDuplicadoException(producto.CodigoBarras!, (await BuscarPorCodigoBarrasAsync(producto.CodigoBarras!, ct))?.Nombre);
+        }
+    }
+
+    /// <summary>Nombre que PostgreSQL dio al UNIQUE de codigo_barras en V001.</summary>
+    private const string RestriccionCodigo = "producto_codigo_barras_key";
+
+    public async Task<Producto?> BuscarPorCodigoBarrasAsync(string codigo, CancellationToken ct = default)
+    {
+        var normalizado = ValidadorProducto.NormalizarCodigo(codigo);
+        if (normalizado is null)
+            return null;
+
+        await using var conexion = await _conexiones.AbrirAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            $"SELECT {Columnas} FROM producto WHERE activo AND codigo_barras = @codigo", conexion);
+        cmd.Parameters.AddWithValue("codigo", normalizado);
+        var encontrados = await LeerAsync(cmd, ct);
+        return encontrados.Count > 0 ? encontrados[0] : null;
+    }
+
+    public async Task<Producto> AsignarCodigoBarrasAsync(long productoId, string? codigo, CancellationToken ct = default)
+    {
+        var normalizado = ValidadorProducto.NormalizarCodigo(codigo);
+        if (ValidadorProducto.ErrorCodigo(normalizado) is { } error)
+            throw new ProductoInvalidoException(new[] { error });
+
+        await using var conexion = await _conexiones.AbrirAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            $"UPDATE producto SET codigo_barras = @codigo WHERE id = @id RETURNING {Columnas}", conexion);
+        cmd.Parameters.AddWithValue("id", productoId);
+        cmd.Parameters.AddWithValue("codigo", (object?)normalizado ?? DBNull.Value);
+        try
+        {
+            var actualizados = await LeerAsync(cmd, ct);
+            return actualizados.Count > 0
+                ? actualizados[0]
+                : throw new InvalidOperationException("El producto ya no existe en el catálogo.");
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            // Dos productos no pueden tener el mismo código, aunque dos PC lo asignen a la vez.
+            throw new CodigoBarrasDuplicadoException(normalizado!, (await BuscarPorCodigoBarrasAsync(normalizado!, ct))?.Nombre);
         }
     }
 

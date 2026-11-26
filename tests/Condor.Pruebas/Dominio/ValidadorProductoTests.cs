@@ -29,6 +29,50 @@ public class ValidadorProductoTests
         Assert.Contains(errores, e => e.Contains(mensaje));
     }
 
+    // HU-13: código de barras (T-86).
+
+    [Theory]
+    [InlineData("7750182001236")]   // EAN-13 de un fabricante peruano
+    [InlineData("77501820")]        // EAN-8
+    [InlineData("cond-0042")]       // código propio del local
+    public void Codigos_de_barras_validos(string codigo)
+    {
+        var producto = P("Martillo", 25m);
+        producto.CodigoBarras = codigo;
+
+        Assert.Empty(ValidadorProducto.Errores(ValidadorProducto.Normalizar(producto)));
+        Assert.Equal(codigo.ToUpperInvariant(), producto.CodigoBarras);
+    }
+
+    [Theory]
+    [InlineData("123", "entre 4 y 30")]
+    [InlineData("7750 1820", "letras, números y guiones")]
+    [InlineData("ABC*123", "letras, números y guiones")]
+    public void Codigos_de_barras_invalidos(string codigo, string mensaje)
+    {
+        Assert.Contains(mensaje, ValidadorProducto.ErrorCodigo(codigo));
+    }
+
+    [Fact]
+    public void Sin_codigo_de_barras_el_producto_es_valido()
+    {
+        var producto = ValidadorProducto.Normalizar(new Producto { Nombre = "Clavo", Precio = 7.5m, CodigoBarras = "  " });
+
+        Assert.Null(producto.CodigoBarras);
+        Assert.Empty(ValidadorProducto.Errores(producto));
+    }
+
+    [Theory]
+    [InlineData("7750182001236", true)]
+    [InlineData("cond-0042", true)]
+    [InlineData("cemento", false)]     // un nombre escrito a mano
+    [InlineData("tubo 1/2", false)]
+    [InlineData("12", false)]
+    public void Distingue_un_codigo_leido_de_un_nombre(string texto, bool esCodigo)
+    {
+        Assert.Equal(esCodigo, ValidadorProducto.PareceCodigo(texto));
+    }
+
     [Fact]
     public void Nombre_de_mas_de_150_caracteres_no_es_valido()
     {
