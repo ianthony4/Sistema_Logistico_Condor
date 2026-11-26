@@ -10,6 +10,9 @@ public static class TipoComprobante
     public const string NotaVenta = "NV";
     public const string Proforma = "PR";
 
+    /// <summary>Guía de remisión remitente (HU-10); numera en su propia serie T001.</summary>
+    public const string GuiaRemision = "09";
+
     /// <summary>True para la boleta y la factura, las únicas que van a la SUNAT.</summary>
     public static bool EsElectronico(string tipo) => tipo is Factura or Boleta;
 }

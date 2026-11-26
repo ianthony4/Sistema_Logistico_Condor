@@ -96,6 +96,43 @@ public interface ICompraRepositorio
     Task<ResultadoCompras> BuscarAsync(FiltroCompras filtro, CancellationToken ct = default);
 }
 
+/// <summary>Qué guías mostrar en la ventana Guías (HU-10).</summary>
+/// <param name="Texto">Número (T001-5 o 5), DNI o RUC del destinatario (inicio) o parte de su nombre.</param>
+public sealed record FiltroGuias(DateOnly? Desde = null, DateOnly? Hasta = null, string? Texto = null, int Limite = 200);
+
+/// <summary>
+/// Guías de remisión electrónicas (HU-10). Lo implementa Condor.Datos.
+/// </summary>
+public interface IGuiaRemisionRepositorio
+{
+    /// <summary>
+    /// Guarda la guía preparada (ValidadorGuia.Preparar) con el siguiente
+    /// número de la serie T001 y su detalle, en una sola transacción.
+    /// </summary>
+    Task<GuiaRemision> EmitirAsync(GuiaRemision guia, CancellationToken ct = default);
+
+    /// <summary>Guía con su detalle; null si no existe.</summary>
+    Task<GuiaRemision?> ObtenerAsync(long id, CancellationToken ct = default);
+
+    /// <summary>Guías del filtro (sin detalle), de la más reciente a la más antigua.</summary>
+    Task<IReadOnlyList<GuiaRemision>> BuscarAsync(FiltroGuias filtro, CancellationToken ct = default);
+
+    /// <summary>
+    /// Guarda lo que respondió la SUNAT (estado, ticket, XML firmado y CDR) y
+    /// suma un intento. Un estado definitivo ya no se cambia.
+    /// </summary>
+    Task RegistrarRespuestaAsync(long id, RespuestaSunat respuesta, CancellationToken ct = default);
+
+    /// <summary>Anota un intento que no llegó a la SUNAT; la guía sigue pendiente.</summary>
+    Task RegistrarFallaAsync(long id, string motivo, CancellationToken ct = default);
+
+    /// <summary>Guías aún sin respuesta definitiva, de la más antigua a la más reciente.</summary>
+    Task<IReadOnlyList<GuiaRemision>> ListarPendientesAsync(int limite = 50, CancellationToken ct = default);
+
+    /// <summary>Anota que la guía salió impresa.</summary>
+    Task RegistrarImpresionAsync(long id, CancellationToken ct = default);
+}
+
 /// <summary>
 /// Datos de la ferretería para la cabecera de los comprobantes (HU-12).
 /// </summary>
