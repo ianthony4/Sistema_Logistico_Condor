@@ -1,11 +1,11 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78, T-83, T-96)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78, T-83, T-96, T-89)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`, `HU11_...`, `HU10_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`, `HU11_...`, `HU10_...`, `HU13_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
 | `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras, guías), ticketera falsa, API de guías falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
@@ -286,6 +286,25 @@ escribir el número de una factura y **Traer datos**; completar el ubigeo y la
 dirección de la obra, la placa, el conductor y el peso, y **Emitir, imprimir y
 enviar**. La guía sale en la ticketera y en la lista dice «Aceptada» (o
 «Pendiente» si la PC no tiene las credenciales de la API de guías).
+
+## Lector de código de barras (T-89)
+
+`Aceptacion/HU13_LectorCodigoBarrasTests` registra un producto con su código y
+simula el lector (escribe el código y Enter en el campo Producto): el producto
+entra al detalle con una unidad y la segunda pasada la suma a la misma línea;
+la venta se emite como cualquier otra. En el Catálogo (F2) de una PC se le
+asigna el código a un producto que no lo tenía y otra PC lo vende con el
+lector; un código que ya es de otro producto no se asigna y el aviso dice de
+cuál es. Un código desconocido se avisa y Nuevo producto lo propone.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU13"
+```
+
+Prueba manual (Definition of Done de HU-13): con un lector USB (funciona como
+teclado), en **Nueva venta** pasar un producto etiquetado: aparece en el
+detalle sin tocar el teclado. En **Catálogo (F2)** elegir un producto sin
+código, poner el cursor en **Código de barras**, pasar el producto y Enter.
 
 ## Antes de mover una tarjeta a *Hecho*
 
