@@ -26,6 +26,7 @@ public partial class App : Application
     private DispatcherTimer? _monitorConexion;
     private DispatcherTimer? _temporizadorReenvio;
     private DispatcherTimer? _temporizadorGuias;
+    private ConfiguracionSunat? _sunat;
     private bool _baseDatosLista;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -72,6 +73,7 @@ public partial class App : Application
         // HU-07: cada boleta se envía a la SUNAT al emitirla. Sin la sección
         // Sunat en condor.json se emite igual y queda pendiente de envío.
         var sunat = CargarSunat();
+        _sunat = sunat;
         var servicioSunat = sunat.Configurada ? new ServicioEnvioSunat(sunat) : null;
         var registroSunat = new EnvioSunatRepositorio(Conexiones);
         _vm.EnvioSunat = new EnvioSunatViewModel(servicioSunat, new EmpresaRepositorio(Conexiones), registroSunat);
@@ -184,6 +186,15 @@ public partial class App : Application
             _vm.Mensaje = aplicadas == 0
                 ? $"Conectado a la base de datos central ({_config})."
                 : $"Conectado a {_config}. Base de datos actualizada ({aplicadas} migraciones).";
+
+            // T-99: en producción, avisar lo que falta para facturar de verdad.
+            if (_sunat is { EsProduccion: true } sunat)
+            {
+                var pendientes = ChequeoProduccion.Pendientes(sunat, await new EmpresaRepositorio(Conexiones).ObtenerAsync());
+                if (pendientes.Count > 0)
+                    MessageBox.Show("Antes de facturar en producción falta:\n\n• " + string.Join("\n• ", pendientes),
+                        "Puesta en producción", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
 
             // HU-15, criterio 2: si el último respaldo tiene más de 24 horas, se avisa.
             if (_vm.AvisoRespaldo is { } avisoRespaldo)

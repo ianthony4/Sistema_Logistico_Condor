@@ -48,6 +48,8 @@ Ver [CHANGELOG](CHANGELOG.md).
    `ReenvioMinutos` desde la PC que sí la tiene.
 7. **PC principal:** completar la sección `Respaldo` de `condor.json` con la
    carpeta del disco externo según [docs/respaldo.md](docs/respaldo.md).
+8. **Producción:** datos de la empresa, certificado digital, usuario SOL y
+   credenciales de la API de guías según [docs/produccion.md](docs/produccion.md).
 
 ## Atajos de la pantalla Nueva venta
 
