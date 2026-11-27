@@ -35,17 +35,7 @@ public static class FormatoTicket
         var t = new Ticket(columnas);
         var n = columnas;
 
-        // Cabecera: la ferretería.
-        var nombre = (empresa.NombreComercial ?? empresa.RazonSocial).ToUpperInvariant();
-        foreach (var parte in Partir(nombre, n))
-            t.Lineas.Add(new(parte, Alineacion.Centro, Negrita: true, Grande: true));
-        if (empresa.NombreComercial is not null)
-            Agregar(t, empresa.RazonSocial, Alineacion.Centro);
-        t.Lineas.Add(new($"RUC {empresa.Ruc}", Alineacion.Centro, Negrita: true));
-        Agregar(t, empresa.Direccion, Alineacion.Centro);
-        if (!string.IsNullOrWhiteSpace(empresa.Telefono))
-            Agregar(t, $"Tel. {empresa.Telefono}", Alineacion.Centro);
-        Separador(t, '=');
+        Cabecera(t, empresa);
 
         // Tipo y número del comprobante.
         Agregar(t, comprobante.NombreTipo.ToUpperInvariant(), Alineacion.Centro, negrita: true);
@@ -121,6 +111,88 @@ public static class FormatoTicket
         }
         t.Lineas.Add(new("¡Gracias por su compra!", Alineacion.Centro, Negrita: true));
         return t;
+    }
+
+    /// <summary>
+    /// Representación impresa de la guía de remisión remitente (HU-10, T-95):
+    /// destinatario, traslado (motivo, fecha, peso), puntos de partida y
+    /// llegada, transporte y los bienes, sin precios.
+    /// </summary>
+    public static Ticket GenerarGuia(Empresa empresa, GuiaRemision guia, int columnas = ColumnasPorDefecto)
+    {
+        var t = new Ticket(columnas);
+        var n = columnas;
+
+        Cabecera(t, empresa);
+        Agregar(t, "GUÍA DE REMISIÓN ELECTRÓNICA REMITENTE", Alineacion.Centro, negrita: true);
+        t.Lineas.Add(new(guia.NumeroCompleto, Alineacion.Centro, Negrita: true, Grande: true));
+        if (guia.Impresiones > 0)
+            Agregar(t, MarcaCopia, Alineacion.Centro, negrita: true);
+        Separador(t, '-');
+
+        var emision = guia.Fecha.ToOffset(EmisionComprobante.HoraPeru).ToString("dd/MM/yyyy HH:mm", Numeros);
+        t.Lineas.Add(new(DosColumnas($"Emisión: {emision}", $"Caja: {guia.TerminalNombre ?? "-"}", n)));
+        t.Lineas.Add(new($"Inicio del traslado: {Dia(guia.FechaTraslado)}", Negrita: true));
+        Agregar(t, $"Motivo: {guia.DescripcionMotivo ?? MotivoTraslado.Nombre(guia.Motivo)}");
+        if (guia.ComprobanteNumero is { } relacionado)
+            Agregar(t, $"Comprobante: {(guia.ComprobanteTipo == TipoComprobante.Factura ? "Factura" : "Boleta")} {relacionado}");
+        Separador(t, '-');
+
+        Agregar(t, $"Destinatario: {guia.DestinatarioNombre}");
+        t.Lineas.Add(new($"{Cliente.Etiqueta(guia.DestinatarioTipo)}: {guia.DestinatarioDocumento}"));
+        Agregar(t, $"Partida ({guia.PartidaUbigeo}): {guia.PartidaDireccion}");
+        Agregar(t, $"Llegada ({guia.LlegadaUbigeo}): {guia.LlegadaDireccion}");
+        Separador(t, '-');
+
+        Agregar(t, ModalidadTraslado.Nombre(guia.Modalidad), negrita: true);
+        if (guia.EsPublico)
+        {
+            Agregar(t, $"Transportista: {guia.TransportistaRazonSocial}");
+            t.Lineas.Add(new($"RUC: {guia.TransportistaRuc}"));
+        }
+        else
+        {
+            t.Lineas.Add(new($"Vehículo: {guia.VehiculoPlaca}"));
+            Agregar(t, $"Conductor: {guia.ConductorNombres} {guia.ConductorApellidos}");
+            t.Lineas.Add(new(DosColumnas($"DNI: {guia.ConductorDni}", $"Lic.: {guia.ConductorLicencia}", n)));
+        }
+        t.Lineas.Add(new($"Peso bruto: {guia.PesoBrutoKg.ToString("0.###", Numeros)} KG", Negrita: true));
+        Separador(t, '-');
+
+        // Bienes: descripción y, a la derecha, cantidad y unidad.
+        t.Lineas.Add(new(DosColumnas("BIENES TRASLADADOS", "CANTIDAD", n), Negrita: true));
+        Separador(t, '-');
+        foreach (var linea in guia.Detalle)
+        {
+            var cantidad = $"{linea.Cantidad.ToString("0.###", Numeros)} {linea.Unidad}";
+            var partes = Partir(linea.Descripcion, Math.Max(10, n - cantidad.Length - 1)).ToList();
+            t.Lineas.Add(new(DosColumnas(partes[0], cantidad, n)));
+            foreach (var resto in partes.Skip(1))
+                t.Lineas.Add(new(resto));
+        }
+        if (!string.IsNullOrWhiteSpace(guia.Observacion))
+        {
+            Separador(t, '-');
+            Agregar(t, $"Obs.: {guia.Observacion}");
+        }
+        Separador(t, '=');
+        Agregar(t, "Representación impresa de la Guía de remisión electrónica remitente.", Alineacion.Centro);
+        return t;
+    }
+
+    /// <summary>Cabecera común: nombre, razón social, RUC, dirección y teléfono de la ferretería.</summary>
+    private static void Cabecera(Ticket t, Empresa empresa)
+    {
+        var nombre = (empresa.NombreComercial ?? empresa.RazonSocial).ToUpperInvariant();
+        foreach (var parte in Partir(nombre, t.Columnas))
+            t.Lineas.Add(new(parte, Alineacion.Centro, Negrita: true, Grande: true));
+        if (empresa.NombreComercial is not null)
+            Agregar(t, empresa.RazonSocial, Alineacion.Centro);
+        t.Lineas.Add(new($"RUC {empresa.Ruc}", Alineacion.Centro, Negrita: true));
+        Agregar(t, empresa.Direccion, Alineacion.Centro);
+        if (!string.IsNullOrWhiteSpace(empresa.Telefono))
+            Agregar(t, $"Tel. {empresa.Telefono}", Alineacion.Centro);
+        Separador(t, '=');
     }
 
     /// <summary>Fecha con barras (29/11/2026), sin depender del separador de Windows.</summary>

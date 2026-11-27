@@ -56,6 +56,50 @@ public sealed class ImpresionViewModel : ObservableObject
     public AsyncRelayCommand ReimprimirCommand { get; }
 
     /// <summary>
+    /// Imprime la guía de remisión (HU-10, T-95) y anota la impresión. La lee
+    /// completa si viene de la lista. Devuelve false si no salió; el motivo
+    /// queda en Error.
+    /// </summary>
+    public async Task<bool> ImprimirGuiaAsync(GuiaRemision guia, IGuiaRemisionRepositorio guias)
+    {
+        Error = null;
+        try
+        {
+            if (guia.Detalle.Count == 0)
+                guia = await guias.ObtenerAsync(guia.Id) ?? throw new InvalidOperationException($"No se encontró {guia.NumeroCompleto}.");
+            _empresa ??= await _empresas.ObtenerAsync();
+            await _impresora.ImprimirAsync(FormatoTicket.GenerarGuia(_empresa, guia, _columnas));
+        }
+        catch (ImpresionException ex)
+        {
+            Error = $"{guia.NumeroCompleto} quedó registrada, pero no se imprimió. {ex.Message}";
+            return false;
+        }
+        catch (SinConexionException)
+        {
+            Error = $"Sin conexión con la PC principal: no se pudo preparar la guía {guia.NumeroCompleto}.";
+            ConexionPerdida?.Invoke();
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Error = $"No se pudo imprimir {guia.NumeroCompleto}: {ex.Message}";
+            return false;
+        }
+
+        try
+        {
+            await guias.RegistrarImpresionAsync(guia.Id);
+            guia.Impresiones++;
+        }
+        catch (Exception)
+        {
+            // La guía ya salió; no se molesta al usuario si no se pudo anotar.
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Imprime el comprobante y anota la impresión en la base central.
     /// Devuelve false si no salió; el motivo queda en Error.
     /// </summary>
