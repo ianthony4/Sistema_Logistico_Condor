@@ -9,7 +9,8 @@ namespace Condor.Sunat;
 /// comprobantes; si falta, se emite igual y quedan pendientes de envío.
 /// Desde el Sprint 4 dice también cada cuánto se reenvían los pendientes
 /// (HU-17, T-57); desde el Sprint 5, dónde consultar el CDR de un
-/// comprobante que la SUNAT ya tenía registrado (T-84).
+/// comprobante que la SUNAT ya tenía registrado (T-84) y las credenciales de
+/// la API de guías de remisión (HU-10, T-93).
 /// </summary>
 public sealed class ConfiguracionSunat
 {
@@ -26,6 +27,13 @@ public sealed class ConfiguracionSunat
     /// tiene uno de pruebas: en beta no se puede consultar el CDR.
     /// </summary>
     public const string UrlConsultaProduccion = "https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService";
+
+    /// <summary>API de guías de remisión (GRE) de producción: seguridad (token) y comprobantes.</summary>
+    public const string UrlGreSeguridadProduccion = "https://api-seguridad.sunat.gob.pe/v1";
+    public const string UrlGreProduccion = "https://api-cpe.sunat.gob.pe/v1";
+
+    /// <summary>Entorno de pruebas de la API de guías que usa Greenter (token y comprobantes en la misma URL).</summary>
+    public const string UrlGreBeta = "https://gre-test.nubefact.com/v1";
 
     private static readonly JsonSerializerOptions OpcionesJson = new()
     {
@@ -67,6 +75,27 @@ public sealed class ConfiguracionSunat
 
     /// <summary>Solo para pruebas: otra URL del servicio getStatusCdr.</summary>
     public string? UrlConsulta { get; set; }
+
+    /// <summary>
+    /// Credenciales de la API de guías (HU-10): se generan en SUNAT
+    /// Operaciones en Línea > Credenciales de API SUNAT. Sin ellas las guías
+    /// se emiten e imprimen igual y quedan pendientes de envío.
+    /// </summary>
+    public string ClientId { get; set; } = string.Empty;
+
+    public string ClientSecret { get; set; } = string.Empty;
+
+    /// <summary>Solo para pruebas: otra URL de la API de guías (token y comprobantes).</summary>
+    public string? UrlGuias { get; set; }
+
+    /// <summary>True si hay usuario SOL y credenciales de la API: se pueden enviar guías.</summary>
+    public bool GuiasConfiguradas => Configurada && !string.IsNullOrWhiteSpace(ClientId) && !string.IsNullOrWhiteSpace(ClientSecret);
+
+    /// <summary>URL base para pedir el token de la API de guías.</summary>
+    public string UrlGreSeguridad => !string.IsNullOrWhiteSpace(UrlGuias) ? UrlGuias! : EsProduccion ? UrlGreSeguridadProduccion : UrlGreBeta;
+
+    /// <summary>URL base para enviar las guías y consultar sus tickets.</summary>
+    public string UrlGre => !string.IsNullOrWhiteSpace(UrlGuias) ? UrlGuias! : EsProduccion ? UrlGreProduccion : UrlGreBeta;
 
     public bool EsProduccion => Ambiente.Trim().StartsWith("prod", StringComparison.OrdinalIgnoreCase);
 
@@ -137,6 +166,10 @@ public sealed class ConfiguracionSunat
             throw new InvalidDataException($"{Seccion} > Url no es una dirección válida.");
         if (!string.IsNullOrWhiteSpace(UrlConsulta) && !Uri.TryCreate(UrlConsulta, UriKind.Absolute, out _))
             throw new InvalidDataException($"{Seccion} > UrlConsulta no es una dirección válida.");
+        if (!string.IsNullOrWhiteSpace(UrlGuias) && !Uri.TryCreate(UrlGuias, UriKind.Absolute, out _))
+            throw new InvalidDataException($"{Seccion} > UrlGuias no es una dirección válida.");
+        if (string.IsNullOrWhiteSpace(ClientId) != string.IsNullOrWhiteSpace(ClientSecret))
+            throw new InvalidDataException($"{Seccion} > ClientId y ClientSecret de la API de guías van juntos: complete los dos o deje ambos vacíos.");
     }
 
     /// <summary>

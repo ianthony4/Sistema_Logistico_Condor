@@ -103,6 +103,24 @@ public interface IEnvioSunat
 }
 
 /// <summary>
+/// Envía una guía de remisión a la SUNAT por su API de guías (HU-10). Lo
+/// implementa Condor.Sunat. La SUNAT recibe la guía, da un ticket y la
+/// procesa: si aún no termina, la respuesta queda pendiente con el ticket.
+/// </summary>
+public interface IEnvioGuiaSunat
+{
+    /// <summary>"beta" o "producción".</summary>
+    string Ambiente { get; }
+
+    /// <summary>
+    /// Envía la guía (o, si ya tiene ticket, consulta su resultado) y devuelve
+    /// lo que respondió la SUNAT. Lanza SunatNoDisponibleException si no hay
+    /// internet: la guía queda pendiente.
+    /// </summary>
+    Task<RespuestaSunat> EnviarAsync(Empresa empresa, GuiaRemision guia, CancellationToken ct = default);
+}
+
+/// <summary>
 /// No se pudo hablar con la SUNAT (sin internet, tiempo agotado o servicio
 /// caído). El comprobante sigue siendo válido para imprimirse y queda
 /// pendiente de envío (HU-07, criterio 2).

@@ -108,6 +108,7 @@ public class ConfiguracionSunatTests : IDisposable
 
     [Theory]
     [InlineData("""{ "Sunat": { "UrlConsulta": "no es url" } }""", "UrlConsulta")]
+    [InlineData("""{ "Sunat": { "ClientId": "abc" } }""", "ClientSecret")]
     [InlineData("""{ "Sunat": { "Ambiente": "Pruebas" } }""", "Ambiente")]
     [InlineData("""{ "Sunat": { "EsperaSegundos": 1 } }""", "EsperaSegundos")]
     [InlineData("""{ "Sunat": { "Url": "no es url" } }""", "Url")]
