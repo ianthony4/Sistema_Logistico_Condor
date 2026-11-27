@@ -34,6 +34,9 @@
         <DataTemplate DataType="{x:Type vm:CatalogoViewModel}">
             <modulos:CatalogoVista />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:GuiasViewModel}">
+            <modulos:GuiasVista />
+        </DataTemplate>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -140,6 +143,13 @@
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F7" />
                         <TextBlock Text="Proformas" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource BotonModulo}" Tag="&#xE806;" Focusable="False" CommandParameter="Guias"
+                        ToolTip="Guías de remisión para trasladar mercadería a las obras.">
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource Tecla}" Text="F8" />
+                        <TextBlock Text="Guías" />
                     </DockPanel>
                 </Button>
                 <Button Style="{StaticResource BotonModulo}" Tag="&#xE753;" Focusable="False" CommandParameter="Respaldo"

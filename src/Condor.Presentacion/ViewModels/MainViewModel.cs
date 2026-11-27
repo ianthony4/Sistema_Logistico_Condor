@@ -1,5 +1,6 @@
 using Condor.Dominio.Contratos;
 using Condor.Dominio.Entidades;
+using Condor.Dominio.Sunat;
 using Condor.Dominio.Validacion;
 using Condor.Dominio.Ventas;
 using Condor.Presentacion.Mvvm;
@@ -24,6 +25,8 @@ public sealed class MainViewModel : ObservableObject
     private IRespaldoRepositorio? _respaldos;
     private string? _carpetaRespaldo;
     private AvisoRespaldoViewModel? _avisoRespaldo;
+    private IGuiaRemisionRepositorio? _guias;
+    private IEmpresaRepositorio? _empresas;
     private string _mensaje = "Listo.";
     private Sesion? _sesion;
     private EstadoConexionViewModel? _conexion;
@@ -253,6 +256,7 @@ public sealed class MainViewModel : ObservableObject
         Modulo.Proformas => CrearProformas(),
         Modulo.Compras => CrearCompras(),
         Modulo.Catalogo => CrearCatalogo(),
+        Modulo.Guias => CrearGuias(),
         _ => null,
     };
 
@@ -426,6 +430,36 @@ public sealed class MainViewModel : ObservableObject
         _respaldos = registro;
         _carpetaRespaldo = carpeta;
         AvisoRespaldo = new AvisoRespaldoViewModel(registro, avisoHoras, ahora);
+    }
+
+    /// <summary>
+    /// Guías de remisión (F8, HU-10). Lo llama el arranque: el envío solo
+    /// existe en la PC con las credenciales de la API de guías.
+    /// </summary>
+    public void ConfigurarGuias(IGuiaRemisionRepositorio guias, IEmpresaRepositorio empresas, IEnvioGuiaSunat? envio)
+    {
+        _guias = guias;
+        _empresas = empresas;
+        EnvioGuias = new EnvioGuias(envio, guias, empresas);
+    }
+
+    /// <summary>Envío y reenvío de guías a la SUNAT; null hasta que el arranque configure las guías.</summary>
+    public EnvioGuias? EnvioGuias { get; private set; }
+
+    /// <summary>Módulo Guías (F8, HU-10, T-94); null si no se configuraron las guías.</summary>
+    public GuiasViewModel? CrearGuias()
+    {
+        if (_guias is null || _empresas is null || EnvioGuias is null || _comprobantes is null || _clientes is null || _productos is null)
+            return null;
+
+        var vm = new GuiasViewModel(_guias, EnvioGuias, Impresion, () =>
+        {
+            var nueva = new NuevaGuiaViewModel(_guias, _comprobantes, _clientes, _productos, _empresas, () => Sesion);
+            nueva.Buscador.Espera = Buscador?.Espera ?? nueva.Buscador.Espera;
+            return nueva;
+        });
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        return vm;
     }
 
     /// <summary>Aviso de respaldo vencido al abrir el sistema (HU-15, criterio 2).</summary>
