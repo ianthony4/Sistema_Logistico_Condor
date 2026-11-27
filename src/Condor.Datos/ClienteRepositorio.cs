@@ -66,6 +66,30 @@ public sealed class ClienteRepositorio : IClienteRepositorio
         }
     }
 
+    public async Task<IReadOnlyList<Cliente>> BuscarAsync(string? texto, int limite = 200, CancellationToken ct = default)
+    {
+        texto = texto?.Trim() ?? string.Empty;
+        await using var conexion = await _conexiones.AbrirAsync(ct);
+        await using var cmd = new NpgsqlCommand(
+            $"""
+            SELECT {Columnas}
+            FROM cliente
+            WHERE @texto = ''
+               OR numero_documento LIKE @texto || '%'
+               OR texto_busqueda(nombre) LIKE '%' || texto_busqueda(@texto) || '%'
+            ORDER BY nombre
+            LIMIT @limite
+            """, conexion);
+        cmd.Parameters.AddWithValue("texto", ProductoRepositorio.EscaparLike(texto));
+        cmd.Parameters.AddWithValue("limite", Math.Clamp(limite, 1, 500));
+
+        var clientes = new List<Cliente>();
+        await using var lector = await cmd.ExecuteReaderAsync(ct);
+        while (await lector.ReadAsync(ct))
+            clientes.Add(Leer(lector));
+        return clientes;
+    }
+
     /// <summary>Código del catálogo 06 de la SUNAT tal como se guarda en tipo_documento (char(1)).</summary>
     public static string CodigoTipo(TipoDocumento tipo) => ((int)tipo).ToString();
 
