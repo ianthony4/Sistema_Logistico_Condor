@@ -41,6 +41,13 @@ public interface IClienteRepositorio
     /// ClienteDuplicadoException si el documento ya estaba registrado.
     /// </summary>
     Task<Cliente> RegistrarAsync(Cliente cliente, CancellationToken ct = default);
+
+    /// <summary>
+    /// Clientes por DNI o RUC (inicio) o por parte del nombre, sin distinguir
+    /// mayúsculas ni tildes (ventana Clientes, F3). Con el texto vacío, todos.
+    /// Ordenados por nombre.
+    /// </summary>
+    Task<IReadOnlyList<Cliente>> BuscarAsync(string? texto, int limite = 200, CancellationToken ct = default);
 }
 
 /// <summary>

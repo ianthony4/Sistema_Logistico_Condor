@@ -37,6 +37,9 @@
         <DataTemplate DataType="{x:Type vm:GuiasViewModel}">
             <modulos:GuiasVista />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ClientesViewModel}">
+            <modulos:ClientesVista />
+        </DataTemplate>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -111,7 +114,8 @@
                         <TextBlock Text="Catálogo" />
                     </DockPanel>
                 </Button>
-                <Button Style="{StaticResource BotonModulo}" Tag="&#xE77B;" Focusable="False" CommandParameter="Clientes">
+                <Button Style="{StaticResource BotonModulo}" Tag="&#xE77B;" Focusable="False" CommandParameter="Clientes"
+                        ToolTip="Clientes: buscar por DNI, RUC o nombre y registrar uno nuevo.">
                     <DockPanel>
                         <TextBlock Style="{StaticResource Tecla}" Text="F3" />
                         <TextBlock Text="Clientes" />

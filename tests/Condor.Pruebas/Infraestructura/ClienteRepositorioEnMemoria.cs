@@ -49,4 +49,20 @@ public sealed class ClienteRepositorioEnMemoria : IClienteRepositorio
         _clientes.Add(cliente);
         return Task.FromResult(cliente);
     }
+
+    public Task<IReadOnlyList<Cliente>> BuscarAsync(string? texto, int limite = 200, CancellationToken ct = default)
+    {
+        if (Error is not null)
+            throw Error;
+
+        texto = texto?.Trim() ?? string.Empty;
+        IReadOnlyList<Cliente> encontrados = _clientes
+            .Where(c => texto.Length == 0
+                        || c.NumeroDocumento.StartsWith(texto, StringComparison.Ordinal)
+                        || c.Nombre.Contains(texto, StringComparison.CurrentCultureIgnoreCase))
+            .OrderBy(c => c.Nombre, StringComparer.CurrentCultureIgnoreCase)
+            .Take(limite)
+            .ToList();
+        return Task.FromResult(encontrados);
+    }
 }

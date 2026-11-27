@@ -46,7 +46,7 @@ public sealed class MainViewModel : ObservableObject
         _compras = compras;
 
         ModuloPendienteCommand = new RelayCommand(
-            p => Mensaje = $"El módulo {p} se implementará en un próximo sprint.");
+            p => Mensaje = $"El módulo {p} no está disponible en esta PC: revise su configuración en condor.json.");
         IrACommand = new RelayCommand(p => IrA(p is Modulo m ? m : Enum.Parse<Modulo>(p?.ToString() ?? nameof(Modulo.Venta))));
 
         Venta.LineaAgregada += linea =>
@@ -181,7 +181,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Último envío a la SUNAT lanzado al emitir; las pruebas lo esperan con await.</summary>
     public Task UltimoEnvioSunat { get; private set; } = Task.CompletedTask;
 
-    /// <summary>Atiende los botones F2 a F9 de módulos que aún no existen.</summary>
+    /// <summary>Avisa que un módulo no se puede abrir porque esta PC no lo tiene configurado.</summary>
     public RelayCommand ModuloPendienteCommand { get; }
 
     /// <summary>Módulo que se ve en el panel derecho; Venta es la pantalla Nueva venta.</summary>
@@ -257,6 +257,7 @@ public sealed class MainViewModel : ObservableObject
         Modulo.Compras => CrearCompras(),
         Modulo.Catalogo => CrearCatalogo(),
         Modulo.Guias => CrearGuias(),
+        Modulo.Clientes => CrearClientes(),
         _ => null,
     };
 
@@ -334,6 +335,30 @@ public sealed class MainViewModel : ObservableObject
     {
         Cliente?.Seleccionar(cliente);
         Mensaje = $"Cliente registrado: {cliente.Nombre} ({cliente.Documento}).";
+    }
+
+    /// <summary>Módulo Clientes (F3, T-97); null si no hay repositorio de clientes.</summary>
+    public ClientesViewModel? CrearClientes()
+    {
+        if (_clientes is null)
+            return null;
+
+        var vm = new ClientesViewModel(_clientes);
+        vm.ConexionPerdida += () => Conexion?.MarcarSinConexion();
+        // Usar en la venta: el cliente queda elegido y se vuelve a Nueva venta.
+        vm.ClienteElegido += c =>
+        {
+            UsarCliente(c);
+            IrA(Modulo.Venta);
+        };
+        return vm;
+    }
+
+    /// <summary>Se eligió un cliente en el módulo Clientes: la venta en curso lo lleva.</summary>
+    public void UsarCliente(Cliente cliente)
+    {
+        Cliente?.Seleccionar(cliente);
+        Mensaje = $"Cliente de la venta: {cliente.Nombre} ({cliente.Documento}).";
     }
 
     /// <summary>Ventana Proveedores (F6, HU-04, T-39); null si no hay repositorio.</summary>
