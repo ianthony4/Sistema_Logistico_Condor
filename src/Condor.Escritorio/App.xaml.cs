@@ -25,6 +25,7 @@ public partial class App : Application
     private AvisoCatalogo? _avisoCatalogo;
     private DispatcherTimer? _monitorConexion;
     private DispatcherTimer? _temporizadorReenvio;
+    private DispatcherTimer? _temporizadorGuias;
     private bool _baseDatosLista;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -85,6 +86,17 @@ public partial class App : Application
         {
             _temporizadorReenvio = new DispatcherTimer { Interval = TimeSpan.FromMinutes(sunat.ReenvioMinutos) };
             _temporizadorReenvio.Tick += async (_, _) => await _vm.ReenvioSunat.ReenviarAsync();
+        }
+
+        // HU-10: las guías se emiten en cualquier PC; se envían desde la que
+        // tiene las credenciales de la API de guías, y sus pendientes se
+        // consultan o reenvían cada ReenvioMinutos.
+        IEnvioGuiaSunat? servicioGuias = sunat.GuiasConfiguradas ? new ServicioGuiaSunat(sunat) : null;
+        _vm.ConfigurarGuias(new GuiaRemisionRepositorio(Conexiones), new EmpresaRepositorio(Conexiones), servicioGuias);
+        if (servicioGuias is not null && sunat.ReenviaPendientes)
+        {
+            _temporizadorGuias = new DispatcherTimer { Interval = TimeSpan.FromMinutes(sunat.ReenvioMinutos) };
+            _temporizadorGuias.Tick += async (_, _) => await ReenviarGuiasAsync();
         }
 
         // HU-15: el respaldo se genera en la PC principal, donde se conecta el
@@ -184,6 +196,7 @@ public partial class App : Application
                 _temporizadorReenvio?.Start();
                 _ = reenvio.ReenviarAsync();
             }
+            _temporizadorGuias?.Start();
         }
         catch (SinConexionException)
         {
@@ -198,8 +211,26 @@ public partial class App : Application
         }
     }
 
+    /// <summary>Vuelta del reenvío de guías (HU-10); sin la PC principal o sin internet, espera a la siguiente.</summary>
+    private async Task ReenviarGuiasAsync()
+    {
+        if (_vm?.EnvioGuias is not { Configurado: true } envio)
+            return;
+        try
+        {
+            var resultado = await envio.ReenviarPendientesAsync();
+            if (resultado.Aceptadas + resultado.Rechazadas > 0)
+                _vm.Mensaje = resultado.Resumen;
+        }
+        catch (SinConexionException)
+        {
+            _vm.Conexion?.MarcarSinConexion();
+        }
+    }
+
     protected override async void OnExit(ExitEventArgs e)
     {
+        _temporizadorGuias?.Stop();
         _monitorConexion?.Stop();
         _temporizadorReenvio?.Stop();
         if (_avisoCatalogo is not null)
