@@ -180,6 +180,59 @@ public static class DatosPrueba
         return ValidadorCompra.Preparar(compra, Hoy());
     }
 
+    // Código de barras (HU-13): el EAN-13 impreso en la bolsa de cemento.
+    public const string CodigoCemento = "7751234500017";
+
+    /// <summary>Catálogo de prueba con el cemento ya etiquetado con su código de barras.</summary>
+    public static IReadOnlyList<Producto> CatalogoConCodigos()
+    {
+        var catalogo = Catalogo();
+        catalogo[0].CodigoBarras = CodigoCemento;
+        return catalogo;
+    }
+
+    // Guías de remisión (HU-10): el pedido de la obra va en la camioneta del local.
+
+    /// <summary>
+    /// Guía T001 preparada por el dominio (aún sin número): 20 bolsas de cemento
+    /// y 10 varillas a una obra en Yanahuara, en transporte privado.
+    /// </summary>
+    public static GuiaRemision GuiaObra(bool publico = false, DateOnly? traslado = null)
+    {
+        var guia = new GuiaRemision
+        {
+            FechaTraslado = traslado ?? Hoy(),
+            Motivo = MotivoTraslado.Venta,
+            Modalidad = publico ? ModalidadTraslado.Publico : ModalidadTraslado.Privado,
+            DestinatarioTipo = TipoDocumento.Ruc,
+            DestinatarioDocumento = "20131312955",
+            DestinatarioNombre = "Constructora Valle de Majes S.A.C.",
+            PartidaUbigeo = "040520",
+            PartidaDireccion = "Majes, Caylloma - Arequipa",
+            LlegadaUbigeo = "040129",
+            LlegadaDireccion = "Obra Av. Ejército 101, Yanahuara",
+            PesoBrutoKg = 1235.5m,
+            TerminalId = 1,
+            TerminalNombre = "PC-PRINCIPAL",
+        };
+        if (publico)
+        {
+            guia.TransportistaRuc = "20100137390";
+            guia.TransportistaRazonSocial = "Transportes Arequipa S.A.";
+        }
+        else
+        {
+            guia.VehiculoPlaca = "V1A-952";
+            guia.ConductorDni = "45879632";
+            guia.ConductorNombres = "Juan";
+            guia.ConductorApellidos = "Pérez Quispe";
+            guia.ConductorLicencia = "Q45879632";
+        }
+        foreach (var linea in DetalleObra())
+            guia.Detalle.Add(new DetalleGuia { ProductoId = linea.ProductoId, Descripcion = linea.Descripcion, Unidad = linea.Unidad, Cantidad = linea.Cantidad });
+        return ValidadorGuia.Preparar(guia, Hoy());
+    }
+
     // Respaldos (HU-15): el disco externo de la PC principal.
 
     /// <summary>Carpeta del disco externo en la PC principal.</summary>
