@@ -1,12 +1,12 @@
-# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78, T-83)
+# Pruebas (T-10, T-14, T-18, T-25, T-30, T-34, T-40, T-49, T-54, T-59, T-64, T-69, T-74, T-78, T-83, T-96)
 
 Todas las pruebas están en `tests/Condor.Pruebas` (xUnit).
 
 | Carpeta | Tipo |
 |---|---|
 | `Dominio/`, `Presentacion/`, `Datos/`, `Impresion/`, `Sunat/` | Unitarias: no necesitan base de datos ni ticketera. |
-| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`, `HU11_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
-| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras), ticketera falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
+| `Aceptacion/` | Criterios de aceptación de cada historia (`HU14_...`, `HU01_...`, `HU02_...`, `HU16_...`, `HU03_...`, `HU05_...`, `HU12_...`, `HU04_...`, `HU07_...`, `HU06_...`, `HU17_...`, `HU15_...`, `HU08_...`, `HU09_...`, `HU18_...`, `HU11_...`, `HU10_...`). Cada prueba empieza con el criterio que comprueba (`CA1_`, `CA2_`...). |
+| `Infraestructura/` | Datos de prueba, repositorios en memoria (productos, clientes, comprobantes, proveedores, envíos, respaldos, compras, guías), ticketera falsa, API de guías falsa, SUNAT falsa, generador de respaldos falso y conexión a la BD de pruebas. |
 
 ## Correr solo las unitarias
 
@@ -260,6 +260,32 @@ Factura, serie, número y fecha; agregar productos con su costo (Enter pasa de
 la cantidad al costo y agrega) y **Guardar compra**. La compra aparece
 seleccionada con su detalle y el total de egresos del mes la incluye. Volver
 a registrar la misma factura: el diálogo avisa que ya está registrada.
+
+## Guías de remisión (T-96)
+
+`Aceptacion/HU10_GuiasRemisionTests` vende una factura a una constructora y,
+desde la ventana Guías (F8), trae sus datos a una guía nueva, la completa con
+la camioneta del local y su conductor y la emite: comprueba que queda con la
+serie `T001` y el siguiente número, enlazada a la factura, impresa y aceptada
+por la API de guías falsa (con su ticket). También emite una guía a mano en
+transporte público con el motivo Otros. Sin placa, conductor, licencia ni peso
+no se emite ni se gasta número. Sin internet la guía se imprime y queda
+pendiente; al volver la conexión el reenvío la acepta. Si la SUNAT sigue
+procesando, se guarda el ticket y la vuelta siguiente lo consulta sin volver
+a enviar la guía.
+
+```powershell
+dotnet test --filter "FullyQualifiedName~HU10"
+```
+
+La API de guías real se prueba con `Sunat/ServicioGuiaSunatTests`, que simula
+el token, el envío y la consulta del ticket.
+
+Prueba manual (Definition of Done de HU-10): **Guías (F8)** > **Nueva guía**;
+escribir el número de una factura y **Traer datos**; completar el ubigeo y la
+dirección de la obra, la placa, el conductor y el peso, y **Emitir, imprimir y
+enviar**. La guía sale en la ticketera y en la lista dice «Aceptada» (o
+«Pendiente» si la PC no tiene las credenciales de la API de guías).
 
 ## Antes de mover una tarjeta a *Hecho*
 
