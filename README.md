@@ -5,13 +5,15 @@ ferretería y emitir sus comprobantes electrónicos. Trabaja 100 % en la red
 local: las tres PC del local se conectan a una base de datos PostgreSQL 16
 central instalada en la PC principal.
 
-**Versión 0.4.0 – Incremento del Sprint 4** (14 al 20 de noviembre de 2026):
-factura electrónica con RUC, reenvío automático a la SUNAT de los
-comprobantes pendientes y respaldo manual de la base de datos en un disco
-externo, sobre lo de los sprints anteriores (perfil MAESTRO, base central para
-tres terminales, catálogo con autocompletado, clientes por DNI o RUC, boletas
-con o sin DNI, impresión en la ticketera, envío a la SUNAT y proveedores).
-Ver [CHANGELOG](CHANGELOG.md).
+**Versión 1.0.0 – Entrega final (Sprint 5, 21 al 27 de noviembre de 2026).**
+El backlog del producto está completo: perfil MAESTRO y base central para tres
+terminales; catálogo con autocompletado y lector de código de barras;
+clientes y proveedores; boletas, facturas, notas de venta y proformas que se
+convierten en venta; impresión en la ticketera; envío, reenvío y consulta del
+CDR en la SUNAT; guías de remisión electrónicas; historial de ventas con
+reimpresión; compras a proveedores y respaldo de la base de datos. Ver
+[CHANGELOG](CHANGELOG.md); para pasar a producción,
+[docs/produccion.md](docs/produccion.md).
 
 ## Estructura
 
@@ -22,13 +24,13 @@ Ver [CHANGELOG](CHANGELOG.md).
 | `src/Condor.Dominio` | Entidades, reglas (validación, IGV) y contratos. |
 | `src/Condor.Datos` | Acceso a PostgreSQL (Npgsql), migraciones, repositorios y respaldo con pg_dump. |
 | `src/Condor.Impresion` | Ticketera térmica: comandos ESC/POS y envío directo al spooler de Windows. |
-| `src/Condor.Sunat` | Facturación electrónica: XML UBL 2.1, firma digital, envío a la SUNAT (sendBill), lectura del CDR y reenvío de pendientes. |
+| `src/Condor.Sunat` | Facturación electrónica: XML UBL 2.1 de comprobantes y guías, firma digital, envío a la SUNAT (sendBill y API de guías), lectura y consulta del CDR, reenvío de pendientes y chequeo de producción. |
 | `db/migraciones` | Scripts SQL versionados; se aplican solos al abrir el programa. |
 | `db/servidor` | Instalación de la base central en la PC principal. |
 | `db/datos` | Lista de precios para la carga inicial del catálogo. |
 | `herramientas/Condor.CargaCatalogo` | Programa de consola para la carga inicial. |
 | `tests/Condor.Pruebas` | Pruebas unitarias, de integración y de aceptación (xUnit). |
-| `docs/` | Modelo de datos, instalación, ticketera, SUNAT, respaldo y pruebas. |
+| `docs/` | Modelo de datos, instalación, ticketera, SUNAT, respaldo, puesta en producción y pruebas. |
 
 ## Puesta en marcha
 
@@ -56,15 +58,25 @@ Ver [CHANGELOG](CHANGELOG.md).
 | Tecla | Acción |
 |---|---|
 | Enter | Elegir el producto sugerido y, en Cantidad, agregarlo al detalle. |
+| Lector | Pasar el producto por el lector de código de barras lo agrega con una unidad. |
 | Alt+D | Ir al campo DNI o RUC del cliente (Enter busca). |
 | Ctrl+N | Nuevo producto. |
 | Alt+L | Nuevo cliente. |
-| F10 | Emitir e imprimir. |
+| F10 | Emitir e imprimir: boleta, con DNI, factura, nota de venta o proforma. |
 | F11 | Reimprimir el último ticket. |
-| F5 | Historial: últimos comprobantes, su estado ante la SUNAT, reimpresión y reenvío de pendientes. |
+| F2 | Catálogo: buscar productos, registrar uno nuevo y asignarle su código de barras. |
+| F3 | Clientes: buscar por DNI, RUC o nombre, registrar y usar en la venta. |
+| F4 | Compras a proveedores y egresos del período; Alt+N registra una compra. |
+| F5 | Historial de ventas: filtros por fecha, tipo, cliente o número, total del período, estado ante la SUNAT, reimpresión (como copia) y reenvío de pendientes. |
 | F6 | Proveedores: buscar por RUC o razón social; Alt+N registra uno nuevo. |
+| F7 | Proformas: buscarlas y convertirlas en venta (Enter). |
+| F8 | Guías de remisión: emitir (desde una factura o a mano), imprimir y enviar a la SUNAT. |
 | F9 | Respaldo de la base de datos en el disco externo (PC principal). |
-| Esc | Cancelar la venta en curso. |
+| Esc | Cancelar la venta en curso; dentro de un módulo, volver a Nueva venta. |
+
+Los módulos F2 a F9 se muestran en el panel derecho de la ventana principal,
+en lugar de la pantalla de venta; F1, Esc o el menú vuelven a Nueva venta sin
+perder la venta en curso.
 
 ## Desarrollo
 

@@ -1,5 +1,82 @@
 # Cambios
 
+## 1.0.0 – Sprint 5, entrega final (21 al 27 de noviembre de 2026)
+
+Objetivo del sprint: terminar el backlog del producto en la última semana —
+notas de venta, proformas que se convierten en venta, historial de ventas,
+compras a proveedores, guías de remisión electrónicas y lector de código de
+barras—, cerrar el pendiente del código 1033 de la SUNAT y dejar el sistema
+listo para la puesta en producción. Sprint de una semana.
+
+### HU-08 · Emitir notas de venta
+- Reglas de la nota de venta: serie NV01, cliente opcional, sin el tope de
+  S/ 700 de la boleta; `Comprobante.EsElectronico` distingue lo que va a la
+  SUNAT (T-66).
+- Ticket de la nota de venta con el total y la leyenda «Documento interno de
+  control», sin desglosar el IGV (T-67).
+- Opción Nota venta en el resumen de venta; no se envía a la SUNAT ni cuenta
+  como pendiente (T-68).
+- Pruebas de aceptación, incluidas notas de venta desde tres PC a la vez (T-69).
+
+### HU-09 · Emitir proformas y convertirlas en venta
+- Migración V011: vigencia de la proforma (7 días contando el de emisión) y
+  enlace de la venta con su proforma; la base central admite una sola
+  conversión por proforma y rechaza las vencidas (T-70).
+- Búsqueda de proformas por número, DNI, RUC o nombre del cliente (T-71).
+- Ticket de la proforma con «Válida hasta» y la leyenda de cotización (T-72).
+- Opción Proforma y módulo Proformas (F7): Convertir en venta lleva el
+  detalle y el cliente a la pantalla y propone factura o boleta. Los módulos
+  del menú (F1 a F9) se abren en el panel derecho de la ventana principal en
+  lugar de ventanas aparte; Esc o F1 vuelven a Nueva venta (T-73).
+- Pruebas de aceptación, incluida la misma proforma convertida desde dos PC (T-74).
+
+### HU-18 · Historial de ventas y reimpresión
+- Búsqueda de comprobantes por fechas (días de Perú), tipo, cliente o número,
+  con el total de ventas del período sin proformas ni rechazados (T-75).
+- Historial (F5) con filtros, botones Hoy, Este mes y Todo, el total sobre la
+  lista y «No aplica» en la columna SUNAT de los documentos internos (T-76).
+- El ticket reimpreso sale marcado «COPIA - REIMPRESIÓN» (T-77).
+- Pruebas de aceptación (T-78).
+
+### HU-11 · Registrar compras a proveedores
+- Migración V012 y repositorio de compras: un mismo comprobante del proveedor
+  no se registra dos veces aunque dos PC lo intenten a la vez (T-79).
+- Entidad Compra y sus reglas (T-80); diálogo Nueva compra (T-81); módulo
+  Compras (F4) con el total de egresos del período (T-82).
+- Pruebas de aceptación (T-83).
+
+### HU-13 · Ingreso con lector de código de barras
+- Búsqueda y asignación del código de barras en el catálogo; un código no
+  puede ser de dos productos (T-86).
+- Pasar un producto por el lector en Nueva venta lo agrega con una unidad;
+  campo Código de barras en Nuevo producto (T-87).
+- Módulo Catálogo (F2): buscar por nombre o leyendo el código y asignar el
+  código a los productos que ya estaban (T-88).
+- Pruebas de aceptación (T-89).
+
+### HU-10 · Emitir guías de remisión electrónicas
+- Migración V013: serie T001 y tablas de guías con su respuesta de la SUNAT;
+  la base central exige los datos del transporte según la modalidad (T-90).
+- Entidad GuiaRemision y sus reglas: motivo, fechas, ubigeos, peso,
+  transportista o vehículo y conductor; guía desde una factura o boleta (T-91).
+- XML UBL 2.1 DespatchAdvice firmado (T-92).
+- Envío por la API REST de guías: token OAuth2, ticket y CDR; credenciales
+  `ClientId` y `ClientSecret` en condor.json (T-93).
+- Módulo Guías (F8) y diálogo Nueva guía: se imprime y se envía al emitir;
+  las pendientes se reenvían o consultan solas (T-94).
+- Representación impresa de la guía en la ticketera (T-95).
+- Pruebas de aceptación (T-96).
+
+### Transversales
+- Consulta del CDR con getStatusCdr cuando la SUNAT responde 1033 (T-84).
+- Datos de prueba de notas de venta, proformas y compras (T-85) y de guías y
+  códigos de barras con la API de guías falsa (T-98).
+- Módulo Clientes (F3): ningún módulo del menú queda «para un próximo
+  sprint» (T-97).
+- Puesta en producción: aviso al abrir el sistema de lo que falta (datos de
+  la empresa, certificado y su vencimiento, usuario SOL, credenciales de la
+  API de guías) y guía docs/produccion.md (T-99).
+
 ## 0.4.0 – Sprint 4 (14 al 20 de noviembre de 2026)
 
 Objetivo del sprint: atender a las empresas y obras con factura, que ningún

@@ -2,7 +2,7 @@
 
 Desde la versión 0.4.0 el Encargado General genera un respaldo de toda la
 base de datos central (catálogo, clientes, comprobantes con su CDR,
-proveedores y respaldos anteriores) en un disco externo, desde la ventana
+proveedores y respaldos anteriores) en un disco externo, desde el módulo
 **Respaldo (F9)** de la PC principal. Si el último respaldo tiene más de 24
 horas, las tres PC lo avisan al abrir el sistema.
 
@@ -26,7 +26,7 @@ horas, las tres PC lo avisan al abrir el sistema.
      otra carpeta.
    - `AvisoHoras`: a partir de cuántas horas sin respaldo se avisa (criterio 2).
 
-Las otras PC no llevan la sección `Respaldo`: en ellas la ventana F9 muestra
+Las otras PC no llevan la sección `Respaldo`: en ellas el módulo F9 muestra
 el último respaldo y explica que se genera desde la PC principal.
 
 ## Generar un respaldo (criterio 1)
@@ -40,7 +40,7 @@ el último respaldo y explica que se genera desde la PC principal.
 4. Quitar el disco con **Quitar hardware de forma segura** y guardarlo fuera
    del local (lo ideal: dos discos que se alternan cada semana).
 
-Mientras se genera no se puede cerrar la ventana. Se puede seguir vendiendo
+Mientras se genera no se puede cambiar de módulo ni cerrar la ventana. Se puede seguir vendiendo
 en las otras PC: `pg_dump` lee una foto consistente de la base sin
 bloquear las ventas.
 

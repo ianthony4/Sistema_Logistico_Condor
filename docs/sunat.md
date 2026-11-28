@@ -1,4 +1,4 @@
-# Envío de comprobantes a la SUNAT (HU-07, HU-17)
+# Envío de comprobantes y guías a la SUNAT (HU-07, HU-17, HU-10)
 
 Desde la versión 0.3.0 cada boleta (y desde la 0.4.0, cada factura con RUC,
 HU-06) se envía a la SUNAT en cuanto se emite; los que quedan pendientes por
@@ -15,6 +15,20 @@ que Greenter / sunat-manager:
 | 6. Aviso en la pantalla de venta y en el Historial | `EnvioSunatViewModel`, `ComprobantesRecientesViewModel` | T-47, T-48 |
 | 7. Reenvío automático de los pendientes | `ReenvioPendientes`, `ReenvioSunatViewModel` (reserva en `comprobante_sunat`, V009) | T-55 a T-58 |
 | 8. Consulta del CDR de un comprobante ya registrado (`getStatusCdr`) | `ClienteSunatSoap.ConsultarCdrAsync`, `ServicioEnvioSunat` | T-84 |
+| 9. Guía de remisión: XML DespatchAdvice, API REST de guías (token, ticket y CDR) | `GeneradorXmlGuia`, `ClienteGreSunat`, `ServicioGuiaSunat`, `EnvioGuias` (tabla `guia_remision`, V013) | T-90 a T-94 |
+
+### Guías de remisión (HU-10)
+
+La guía de remisión remitente (serie `T001`) no va por `sendBill`: va por la
+**API REST de guías** de la SUNAT. Primero se pide un token con el usuario y
+la clave SOL más el `ClientId` y el `ClientSecret` de *Credenciales de API
+SUNAT*; luego se envía el ZIP firmado, la SUNAT responde con un **ticket** y,
+con él, se consulta el resultado. Si la SUNAT sigue procesando (código 98), la
+guía queda pendiente con su ticket y la vuelta siguiente del reenvío lo
+consulta sin volver a enviarla. Sin credenciales, la guía se emite e imprime
+igual y queda pendiente. En beta se usa el entorno de pruebas
+`https://gre-test.nubefact.com/v1` (el mismo de Greenter); en producción,
+`api-seguridad.sunat.gob.pe` y `api-cpe.sunat.gob.pe`.
 
 Las notas de venta (`NV01`, HU-08) y las proformas (`PR01`, HU-09) son
 documentos internos: se imprimen pero **no se envían** a la SUNAT ni cuentan
