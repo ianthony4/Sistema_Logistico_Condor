@@ -35,7 +35,7 @@ erDiagram
         varchar nombre UK "único sin distinguir mayúsculas"
         numeric precio "con IGV, mayor que 0"
         varchar unidad "UND, KG, M, GAL..."
-        varchar codigo_barras "opcional (HU-13, futuro)"
+        varchar codigo_barras "único, lo lee el lector (HU-13)"
         boolean activo
         timestamptz creado_en
     }

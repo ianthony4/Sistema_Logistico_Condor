@@ -151,7 +151,7 @@ el aviso desaparece y en el Historial las dos dicen «Aceptada».
 
 ## Respaldo (T-64)
 
-`Aceptacion/HU15_RespaldoTests` genera el respaldo desde la ventana F9 de la
+`Aceptacion/HU15_RespaldoTests` genera el respaldo desde el módulo F9 de la
 PC principal con un `pg_dump` simulado que escribe en una carpeta temporal
 (el «disco externo»): comprueba el nombre con la fecha y la hora, el avance
 y la confirmación, y que las otras PC lo ven como el último. Sin el disco
@@ -203,7 +203,7 @@ se propone Factura y que al emitir sale con el siguiente número de la `F001`,
 enlazada a la proforma y enviada a la SUNAT. Si dos PC cargan la misma
 proforma, la segunda en emitir recibe el aviso «ya se convirtió en venta» y no
 gasta número; en la lista figura en qué factura terminó. Una proforma vencida
-no se puede convertir ni desde la ventana ni forzando la emisión (la base
+no se puede convertir ni desde el módulo ni forzando la emisión (la base
 central la rechaza); en su último día de vigencia todavía se convierte.
 
 ```powershell
@@ -264,7 +264,7 @@ a registrar la misma factura: el diálogo avisa que ya está registrada.
 ## Guías de remisión (T-96)
 
 `Aceptacion/HU10_GuiasRemisionTests` vende una factura a una constructora y,
-desde la ventana Guías (F8), trae sus datos a una guía nueva, la completa con
+desde el módulo Guías (F8), trae sus datos a una guía nueva, la completa con
 la camioneta del local y su conductor y la emite: comprueba que queda con la
 serie `T001` y el siguiente número, enlazada a la factura, impresa y aceptada
 por la API de guías falsa (con su ticket). También emite una guía a mano en
